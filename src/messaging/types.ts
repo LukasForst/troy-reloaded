@@ -16,7 +16,6 @@ export interface OtrEnvelope {
    */
   cipherTextPayload: CipherTextBase64;
 }
-
 /**
  * List of possible OtrMessage that can go through system.
  */
@@ -55,6 +54,12 @@ export interface ConversationEvent {
   conversationId: ConversationId;
 }
 
+export interface AssetMetadata {
+  fileName: string;
+  length: number;
+  fileExtension: string; // TODO maybe content type would be better?
+}
+
 export interface NewAssetOtrMessage extends ConversationEvent {
   /**
    * ID of the asset.
@@ -68,8 +73,8 @@ export interface NewAssetOtrMessage extends ConversationEvent {
    * SHA256 as base64.
    */
   sha256: Base64EncodedString;
-
-  fileName: string;
-  length: number;
-  fileExtension: string; // TODO maybe content type would be better?
+  /**
+   * Metadata.
+   */
+  metadata: AssetMetadata;
 }

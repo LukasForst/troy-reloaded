@@ -43,7 +43,7 @@ export interface EncryptedAsset {
   sha256: Base64EncodedString;
 }
 
-export interface ClientsPrekeyBundles {
+export interface ClientsPrekeyBundle {
   [clientId: ClientId]: SerializedPrekey;
 }
 

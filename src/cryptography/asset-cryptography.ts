@@ -5,29 +5,6 @@ import { Decoder, Encoder } from 'bazinga64';
 const { crypto } = window;
 
 /**
- * Decrypts asset from received data.
- * @param cipherText asset cipher text downloaded from the file storage.
- * @param key base64 encoded decryption key received as OTR message
- * @param sha256 base64 encoded sha256 received as OTR message, of the encrypted asset
- */
-export const decryptAsset = async ({ cipherText, key, sha256 }: EncryptedAsset): Promise<Buffer> => {
-  const computedSha256 = await crypto.subtle.digest('SHA-256', cipherText);
-  const referenceSha256 = Buffer.from(Decoder.fromBase64(sha256).asBytes);
-  if (!isEqual(Buffer.from(computedSha256), referenceSha256)) {
-    throw new Error('Encrypted asset does not match its SHA-256 hash');
-  }
-
-  const keyBytes = Decoder.fromBase64(key).asBytes;
-  const rawKey = await crypto.subtle.importKey('raw', keyBytes, 'AES-CBC', false, ['decrypt']);
-
-  const initializationVector = cipherText.slice(0, 16);
-  const assetCipherText = cipherText.slice(16);
-  const decipher = await crypto.subtle.decrypt({ iv: initializationVector, name: 'AES-CBC' }, rawKey, assetCipherText);
-
-  return Buffer.from(decipher);
-};
-
-/**
  * Encrypts given plaintext, encrypts it and returns cipherText, sha256 and key.
  */
 export const encryptAsset = async (assetPlainText: BufferSource): Promise<EncryptedAsset> => {
@@ -53,6 +30,29 @@ export const encryptAsset = async (assetPlainText: BufferSource): Promise<Encryp
     key: Encoder.toBase64(keyBytes).asString,
     sha256: Encoder.toBase64(computedSha256).asString
   };
+};
+
+/**
+ * Decrypts asset from received data.
+ * @param cipherText asset cipher text downloaded from the file storage.
+ * @param key base64 encoded decryption key received as OTR message
+ * @param sha256 base64 encoded sha256 received as OTR message, of the encrypted asset
+ */
+export const decryptAsset = async ({ cipherText, key, sha256 }: EncryptedAsset): Promise<Buffer> => {
+  const computedSha256 = await crypto.subtle.digest('SHA-256', cipherText);
+  const referenceSha256 = Buffer.from(Decoder.fromBase64(sha256).asBytes);
+  if (!isEqual(Buffer.from(computedSha256), referenceSha256)) {
+    throw new Error('Encrypted asset does not match its SHA-256 hash');
+  }
+
+  const keyBytes = Decoder.fromBase64(key).asBytes;
+  const rawKey = await crypto.subtle.importKey('raw', keyBytes, 'AES-CBC', false, ['decrypt']);
+
+  const initializationVector = cipherText.slice(0, 16);
+  const assetCipherText = cipherText.slice(16);
+  const decipher = await crypto.subtle.decrypt({ iv: initializationVector, name: 'AES-CBC' }, rawKey, assetCipherText);
+
+  return Buffer.from(decipher);
 };
 
 const isEqual = (a: Buffer, b: Buffer): boolean => {

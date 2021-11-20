@@ -5,7 +5,7 @@ import {
   Base64EncodedString,
   CipherTextBase64,
   ClientsCipherTextMap,
-  ClientsPrekeyBundles,
+  ClientsPrekeyBundle,
   CryptoboxInitialisation,
   PlainText,
   SerializedPrekey,
@@ -82,7 +82,7 @@ export class CryptoboxWrapper {
    */
   public async encryptForClientsWithPreKeys(
     plainText: PlainText,
-    clientsPreKeyBundles: ClientsPrekeyBundles
+    clientsPreKeyBundles: ClientsPrekeyBundle
   ): Promise<ClientsCipherTextMap> {
     const bundles: Promise<SessionPayloadBundle>[] = [];
 

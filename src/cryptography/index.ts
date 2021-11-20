@@ -1,7 +1,7 @@
 import { Cryptobox } from '@wireapp/cryptobox';
 import { providePermanentEngine } from '../storage';
 import { CryptoboxWrapper } from './cryptobox-wrapper';
-import { ClientsPrekeyBundles } from './types';
+import { ClientsPrekeyBundle } from './types';
 import { decryptAsset, encryptAsset } from './asset-cryptography';
 import { ClientId } from '../model';
 import { OtrEnvelope, OtrMessage } from '../messaging/types';
@@ -10,22 +10,11 @@ import { CRUDEngine } from '@wireapp/store-engine';
 export default class Cryptography {
 
   public readonly cryptobox: Cryptobox;
-  public readonly service: CryptoboxWrapper;
+  public readonly wrapper: CryptoboxWrapper;
   /**
    * See asset-cryptography.encryptAsset
    */
   encryptAsset = encryptAsset;
-  /**
-   * See asset-cryptography.decryptAsset
-   */
-  decryptAsset = decryptAsset;
-
-  constructor(
-    private readonly engine: CRUDEngine,
-    options?: { cryptobox?: Cryptobox }) {
-    this.cryptobox = options?.cryptobox ?? new Cryptobox(this.engine);
-    this.service = new CryptoboxWrapper(this.cryptobox);
-  }
 
   /**
    * Create instance of this class with given storage name.
@@ -44,9 +33,21 @@ export default class Cryptography {
   }
 
   /**
+   * See asset-cryptography.decryptAsset
+   */
+  decryptAsset = decryptAsset;
+
+  constructor(
+    private readonly engine: CRUDEngine,
+    options?: { cryptobox?: Cryptobox }) {
+    this.cryptobox = options?.cryptobox ?? new Cryptobox(this.engine);
+    this.wrapper = new CryptoboxWrapper(this.cryptobox);
+  }
+
+  /**
    * Initializes cryptography services.
    */
-  initialize = () => this.service.initOrCreate();
+  initialize = () => this.wrapper.initOrCreate();
 
   /**
    * Serializes and encrypts given OTR message for given prekeys, creating OTR Envelopes.
@@ -54,9 +55,9 @@ export default class Cryptography {
    * @param otrMessage message to be encrypted
    * @param prekeysBundle prekeys bundle that will be used to encrypt the data.
    */
-  encryptToEnvelopes = async (sender: ClientId, otrMessage: OtrMessage, prekeysBundle: ClientsPrekeyBundles): Promise<OtrEnvelope[]> => {
+  encryptToEnvelopes = async (sender: ClientId, otrMessage: OtrMessage, prekeysBundle: ClientsPrekeyBundle): Promise<OtrEnvelope[]> => {
     const plainText = JSON.stringify(otrMessage);
-    const cipherText = await this.service.encryptForClientsWithPreKeys(plainText, prekeysBundle);
+    const cipherText = await this.wrapper.encryptForClientsWithPreKeys(plainText, prekeysBundle);
 
     return Object.keys(cipherText).map(clientId => ({
       senderClientId: sender,
@@ -72,7 +73,7 @@ export default class Cryptography {
    * @param envelope received envelope from OTR
    */
   decryptEnvelope = async (envelope: OtrEnvelope): Promise<OtrMessage> => {
-    const plainText = await this.service.decryptFromClient(envelope.senderClientId, envelope.cipherTextPayload);
+    const plainText = await this.wrapper.decryptFromClient(envelope.senderClientId, envelope.cipherTextPayload);
     return JSON.parse(plainText) as OtrMessage;
   };
 }

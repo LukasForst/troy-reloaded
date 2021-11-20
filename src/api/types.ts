@@ -1,6 +1,21 @@
 import { AssetId, NotificationId, OtrTime, UserId } from '../model';
-import { ClientsPrekeyBundles } from '../cryptography/types';
+import { ClientsPrekeyBundle } from '../cryptography/types';
 import { OtrEnvelope } from '../messaging/types';
+
+export interface NotificationsFilter {
+  /**
+   * Get all notifications starting on the given time.
+   */
+  sinceTime?: OtrTime,
+  /**
+   * Get all notifications that arrived after this notification.
+   */
+  sinceNotificationId?: NotificationId,
+  /**
+   * Maximal number of notifications to fetch.
+   */
+  limit?: number
+}
 
 export interface OtrNotification {
   /**
@@ -33,6 +48,14 @@ export interface OtrPostResult {
    * Indication that the request was successful.
    */
   status: string;
+  /**
+   * List of users that will receive the message.
+   */
+  usersReceiving: UserId[];
+  /**
+   * List of users that won't receive message as they don't have any client.
+   */
+  usersUnableToReceive: UserId[];
 }
 
 export interface AssetUploadResult {
@@ -46,25 +69,31 @@ export interface UserClientsPrekeyBundle {
   /**
    * User ids with their clients and their prekeys.
    */
-  [userId: UserId]: ClientsPrekeyBundles;
+  [userId: UserId]: ClientsPrekeyBundle;
 }
 
-export interface ConversationPrePost {
+export interface ConversationMessageVisibility {
+  /**
+   * List of users that will receive the message.
+   */
+  usersReceiving: UserId[];
+  /**
+   * List of users that won't receive message as they don't have any client.
+   */
+  usersUnableToReceive: UserId[];
+}
+
+export interface ConversationPrekeys {
   /**
    * List of pre keys for current user's clients.
    *
    * Note: the collection contains all clients, even the one requesting data.
    */
-  me: ClientsPrekeyBundles;
+  me: ClientsPrekeyBundle;
 
   /**
-   * Users with clients that will receive the OTR message in this conversation, except for the
-   * user that is requesting the data - this user is in `me`.
+   * Clients that will receive the OTR message in this conversation, except for the
+   * user's clients that is requesting the data - this user is in `me`.
    */
-  receivingUsers: UserClientsPrekeyBundle[];
-
-  /**
-   * Users that won't receive the OTR message as they don't have any client.
-   */
-  usersWithNoClients: UserId[];
+  recipients: ClientsPrekeyBundle;
 }
