@@ -3,7 +3,18 @@ import { keys as ProteusKeys } from '@wireapp/proteus';
 import { Decoder, Encoder } from 'bazinga64';
 
 import { CryptographyDatabaseRepository } from './cryptography-database-repository';
-import { CipherTextBase64, ClientId, ClientsPreKeyBundles, OTRClientMap, PlainText, SerializedPreKey, SessionId } from './types';
+import {
+  Base64EncodedString,
+  CipherTextBase64,
+  ClientId,
+  ClientsPreKeyBundles,
+  OTRClientMap,
+  OtrEnvelope,
+  OtrMessage,
+  PlainText,
+  SerializedPreKey,
+  SessionId
+} from './types';
 
 // private interface for passing data between methods
 interface SessionPayloadBundle {
@@ -41,15 +52,25 @@ export class CryptographyService {
   }
 
   /**
-   * Decrypts cipherText for given session.
-   * @param sessionId id of the session that should be used for decrypting the cipherText
-   * @param cipherText base64 encoded cipher text to decrypt
-   * @returns PlainText decrypted plain text
+   * Returns serialized last resort pre key.
    */
-  public decrypt(sessionId: SessionId, cipherText: CipherTextBase64): Promise<PlainText> {
-    this.logger.log(`Decrypting message for session ID "${sessionId}"`);
-    const messageBytes = Decoder.fromBase64(cipherText).asBytes;
-    return this.cryptobox.decrypt(sessionId, messageBytes.buffer);
+  public getLastResortPreKey(): SerializedPreKey {
+    if (!this.cryptobox.lastResortPreKey) {
+      throw new Error('Cryptobox got initialized without a last resort PreKey.');
+    }
+    return this.cryptobox.serialize_prekey(this.cryptobox.lastResortPreKey);
+  }
+
+  /**
+   * Decrypts envelope and returns parsed JSON as OtrMessage.
+   *
+   * When the session does not exist, cryptobox creates it from the received cipher text.
+   * @param envelope received envelope from OTR
+   */
+  public async decryptEnvelope(envelope: OtrEnvelope): Promise<OtrMessage> {
+    const sessionId = this.clientIdToSessionId(envelope.senderClientId);
+    const plainText = await this.decrypt(sessionId, envelope.cipherTextPayload);
+    return JSON.parse(plainText) as OtrMessage;
   }
 
   /**
@@ -72,9 +93,9 @@ export class CryptographyService {
   }
 
   /**
-   * Encrypts given plainText with given prekeys for the users.
+   * Encrypts given plainText with given pre keys for the users.
    * @param plainText data to encrypt
-   * @param clientsPreKeyBundles clientIds to their prekeys
+   * @param clientsPreKeyBundles clientIds to their pre keys
    * @returns OTRClientMap clientIds to base64 encoded cipher text
    */
   public async encryptForClientsWithPreKeys(
@@ -114,6 +135,20 @@ export class CryptographyService {
     this.logger.log(`Deleted session ID "${sessionId}".`);
   }
 
+  /**
+   * Decrypts cipher text for given session. When the session does not exist, cryptobox creates
+   * it from the received cipher text.
+   * @param sessionId id of the session that should be used for decrypting the cipherText
+   * @param cipherText base64 encoded cipher text to decrypt
+   * @returns PlainText decrypted plain text
+   */
+  private async decrypt(sessionId: SessionId, cipherText: CipherTextBase64): Promise<PlainText> {
+    this.logger.log(`Decrypting message for session ID "${sessionId}"`);
+    const messageBytes = Decoder.fromBase64(cipherText).asBytes;
+    const plainTextArray = await this.cryptobox.decrypt(sessionId, messageBytes.buffer);
+    return Buffer.from(plainTextArray).toString('utf8');
+  }
+
   private async mapSessionPayloadBundles(bundles: Promise<SessionPayloadBundle>[]): Promise<OTRClientMap> {
     // wait until plainText is encrypted for each client
     const payloads = await Promise.all(bundles);
@@ -123,7 +158,7 @@ export class CryptographyService {
       const { encryptedPayload, sessionId } = payload;
       // obtain clientId from session
       const clientId = this.sessionIdToClientId(sessionId);
-      // encode encrypted buffer to base64
+      // encode encrypted Uint8 array to base64
       recipients[clientId] = Encoder.toBase64(encryptedPayload).asString;
       return recipients;
     }, {} as OTRClientMap);
@@ -132,16 +167,20 @@ export class CryptographyService {
   private async encryptPayloadForSession(
     sessionId: string,
     plainText: PlainText,
-    base64EncodedPreKey?: string
+    preKey?: Base64EncodedString
   ): Promise<SessionPayloadBundle> {
     this.logger.log(`Encrypting payload for session ID "${sessionId}"`);
     let encryptedPayload: Uint8Array;
 
     try {
-      const decodedPreKeyBundle = base64EncodedPreKey
-        ? Decoder.fromBase64(base64EncodedPreKey).asBytes.buffer
+      // pre key bundle
+      const decodedPreKeyBundle = preKey
+        ? Decoder.fromBase64(preKey).asBytes.buffer
         : undefined;
-      const payloadAsArrayBuffer = await this.cryptobox.encrypt(sessionId, plainText, decodedPreKeyBundle);
+      // encode plainText to UTF-8 uint array
+      const plainTextBuffer = new Uint8Array(Buffer.from(plainText, 'utf-8'));
+      // and encrypt plaintext
+      const payloadAsArrayBuffer = await this.cryptobox.encrypt(sessionId, plainTextBuffer, decodedPreKeyBundle);
       encryptedPayload = new Uint8Array(payloadAsArrayBuffer);
     } catch (error) {
       this.logger.error(`Could not encrypt payload: ${(error as Error).message}`);
