@@ -1,8 +1,6 @@
 import { Cryptobox } from '@wireapp/cryptobox';
 import { keys as ProteusKeys } from '@wireapp/proteus';
 import { Decoder, Encoder } from 'bazinga64';
-
-import { CryptographyDatabaseRepository } from './cryptography-database-repository';
 import {
   Base64EncodedString,
   CipherTextBase64,
@@ -30,7 +28,6 @@ export class CryptographyService {
   private readonly logger = console;
 
   constructor(
-    private readonly database: CryptographyDatabaseRepository,
     private readonly cryptobox: Cryptobox
   ) {
   }
@@ -105,7 +102,7 @@ export class CryptographyService {
     const bundles: Promise<SessionPayloadBundle>[] = [];
 
     // encrypt plainText using sessions
-    for (const clientId in Object.keys(clientsPreKeyBundles)) {
+    for (const clientId of Object.keys(clientsPreKeyBundles)) {
       const preKey = clientsPreKeyBundles[clientId].key;
       const sessionId = this.clientIdToSessionId(clientId);
       bundles.push(this.encryptPayloadForSession(sessionId, plainText, preKey));
@@ -118,13 +115,6 @@ export class CryptographyService {
    */
   public async initCryptobox(): Promise<void> {
     await this.cryptobox.load();
-  }
-
-  /**
-   * Delete all cryptography data form the storage.
-   */
-  public deleteCryptographyStores(): Promise<boolean[]> {
-    return this.database.deleteStores();
   }
 
   /**
@@ -142,7 +132,7 @@ export class CryptographyService {
    * @param cipherText base64 encoded cipher text to decrypt
    * @returns PlainText decrypted plain text
    */
-  private async decrypt(sessionId: SessionId, cipherText: CipherTextBase64): Promise<PlainText> {
+  public async decrypt(sessionId: SessionId, cipherText: CipherTextBase64): Promise<PlainText> {
     this.logger.log(`Decrypting message for session ID "${sessionId}"`);
     const messageBytes = Decoder.fromBase64(cipherText).asBytes;
     const plainTextArray = await this.cryptobox.decrypt(sessionId, messageBytes.buffer);
