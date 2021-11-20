@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import logo from '../assets/logo.svg';
 import './App.css';
-import { providePermanentEngine } from '../storage';
+import { prepareStorage } from '../storage';
 import Cryptography from '../cryptography';
 import CommunicationService from '../service/communication-service';
 import Api from '../api';
@@ -14,7 +14,7 @@ function App() {
 
   // effect for creating all instance of the communication service
   useEffect(() => {
-    providePermanentEngine(userId)
+    prepareStorage(userId)
     .then(({ engine, db }) => {
       const crypto = Cryptography.createWithEngine(engine);
       const service = new CommunicationService(new Api(), crypto, clientId);
