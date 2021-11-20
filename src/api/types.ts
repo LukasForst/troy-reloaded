@@ -23,6 +23,10 @@ export interface OtrNotification {
    */
   notificationId: NotificationId;
   /**
+   * ID of the user who sent the message.
+   */
+  senderUserId: UserId;
+  /**
    * Timestamp when was the notification created on the server.
    */
   createdAt: OtrTime;
@@ -63,13 +67,6 @@ export interface AssetUploadResult {
    * ID of the asset on the server.
    */
   assetId: AssetId;
-}
-
-export interface UserClientsPrekeyBundle {
-  /**
-   * User ids with their clients and their prekeys.
-   */
-  [userId: UserId]: ClientsPrekeyBundle;
 }
 
 export interface ConversationMessageVisibility {

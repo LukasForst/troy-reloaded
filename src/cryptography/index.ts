@@ -1,5 +1,4 @@
 import { Cryptobox } from '@wireapp/cryptobox';
-import { providePermanentEngine } from '../storage';
 import { CryptoboxWrapper } from './cryptobox-wrapper';
 import { ClientsPrekeyBundle } from './types';
 import { decryptAsset, encryptAsset } from './asset-cryptography';
@@ -11,26 +10,16 @@ export default class Cryptography {
 
   public readonly cryptobox: Cryptobox;
   public readonly wrapper: CryptoboxWrapper;
+
   /**
    * See asset-cryptography.encryptAsset
    */
   encryptAsset = encryptAsset;
 
   /**
-   * Create instance of this class with given storage name.
-   * It creates new engine with providePermanentEngine.
-   */
-  public static async create(storageName: string) {
-    const engine = await providePermanentEngine(storageName);
-    return new Cryptography(engine);
-  }
-
-  /**
    * Create instance of this class with given engine.
    */
-  public static createWithEngine(engine: CRUDEngine) {
-    return new Cryptography(engine);
-  }
+  static createWithEngine = (engine: CRUDEngine) => new Cryptography(engine);
 
   /**
    * See asset-cryptography.decryptAsset

@@ -15,7 +15,7 @@ function App() {
   // effect for creating all instance of the communication service
   useEffect(() => {
     providePermanentEngine(userId)
-    .then(engine => {
+    .then(({ engine, db }) => {
       const crypto = Cryptography.createWithEngine(engine);
       const service = new CommunicationService(new Api(), crypto, clientId);
       // initialize service
