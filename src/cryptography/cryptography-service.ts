@@ -82,7 +82,7 @@ export class CryptographyService {
   ): Promise<OTRClientMap> {
     const bundles: Promise<SessionPayloadBundle>[] = [];
     // encrypt plainText using sessions
-    for (const client in clients) {
+    for (const client of clients) {
       const sessionId = this.clientIdToSessionId(client);
       bundles.push(this.encryptPayloadForSession(sessionId, plainText));
     }
@@ -113,8 +113,8 @@ export class CryptographyService {
   /**
    * Initialize cryptobox, tries to load data from the storage.
    */
-  public async initCryptobox(): Promise<void> {
-    await this.cryptobox.load();
+  public async initCryptobox(): Promise<ProteusKeys.PreKey[]> {
+    return await this.cryptobox.load();
   }
 
   /**
