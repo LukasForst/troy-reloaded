@@ -3,7 +3,7 @@ import Cryptography from '../cryptography';
 import { NotificationsFilter, OtrNotification, OtrNotificationsBundle, OtrPostResult } from '../api/types';
 import { DecryptedNotification } from './types';
 import { AssetId, ClientId, ConversationId } from '../model';
-import { AssetMetadata, OtrMessage } from '../messaging/types';
+import { AssetMetadata, OtrMessage } from '../model/messages';
 import { Base64EncodedString } from '../cryptography/types';
 
 export default class CommunicationService {

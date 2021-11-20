@@ -7,7 +7,7 @@ import {
   OtrPostResult
 } from './types';
 import { AssetId, ClientId, ConversationId } from '../model';
-import { OtrEnvelope } from '../messaging/types';
+import { OtrEnvelope } from '../model/messages';
 
 export default class Api {
   /**

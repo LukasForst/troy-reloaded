@@ -1,6 +1,6 @@
 import { AssetId, NotificationId, OtrTime, UserId } from '../model';
 import { ClientsPrekeyBundle } from '../cryptography/types';
-import { OtrEnvelope } from '../messaging/types';
+import { OtrEnvelope } from '../model/messages';
 
 export interface NotificationsFilter {
   /**

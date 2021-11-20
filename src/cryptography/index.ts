@@ -4,7 +4,7 @@ import { CryptoboxWrapper } from './cryptobox-wrapper';
 import { ClientsPrekeyBundle } from './types';
 import { decryptAsset, encryptAsset } from './asset-cryptography';
 import { ClientId } from '../model';
-import { OtrEnvelope, OtrMessage } from '../messaging/types';
+import { OtrEnvelope, OtrMessage } from '../model/messages';
 import { CRUDEngine } from '@wireapp/store-engine';
 
 export default class Cryptography {

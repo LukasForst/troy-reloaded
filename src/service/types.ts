@@ -1,5 +1,5 @@
 import { ClientId, NotificationId, OtrTime } from '../model';
-import { OtrMessage } from '../messaging/types';
+import { OtrMessage } from '../model/messages';
 
 export interface DecryptedNotification {
   /**
