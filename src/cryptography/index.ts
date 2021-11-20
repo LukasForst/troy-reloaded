@@ -1,8 +1,10 @@
 import { Cryptobox } from '@wireapp/cryptobox';
 import { providePermanentEngine } from '../storage';
 import { CryptographyService } from './cryptography-service';
-import { ClientId, ClientsPreKeyBundles, OtrEnvelope, OtrMessage } from './types';
+import { ClientsPrekeyBundles } from './types';
 import { decryptAsset, encryptAsset } from './asset-cryptography';
+import { ClientId } from '../model';
+import { OtrEnvelope, OtrMessage } from '../messaging/types';
 
 /**
  * Creates instances for services necessary for performing cryptography.
@@ -15,27 +17,11 @@ export const createCrypto = async (name: string = 'storage') => {
 
   return {
     engine, cryptobox, service,
-    /**
-     * Initializes cryptobox, tries to load it from the storage, if it fails,
-     * initializes new one. Returns isNew = true if it was created from scratch.
-     *
-     * This function should be called before accessing the cryptobox itself.
-     */
-    initialize: async () => {
-      let isNew = false;
-      try {
-        await service.initCryptobox();
-      } catch (ignored) {
-        await service.createCryptobox();
-        await service.initCryptobox();
-        isNew = true;
-      }
-      return { isNew };
-    },
+    initialize: service.initOrCreate,
     decryptEnvelope: async (envelope: OtrEnvelope): Promise<OtrMessage> => {
       return service.decryptEnvelope(envelope);
     },
-    encryptToEnvelopes: async (sender: ClientId, otrMessage: OtrMessage, preKeys: ClientsPreKeyBundles): Promise<OtrEnvelope[]> => {
+    encryptToEnvelopes: async (sender: ClientId, otrMessage: OtrMessage, preKeys: ClientsPrekeyBundles): Promise<OtrEnvelope[]> => {
       const plainText = JSON.stringify(otrMessage);
       const cipherText = await service.encryptForClientsWithPreKeys(plainText, preKeys);
 
