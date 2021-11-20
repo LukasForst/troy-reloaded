@@ -12,12 +12,11 @@ import {
   SessionId
 } from './types';
 import { ClientId } from '../model';
-import { OtrEnvelope, OtrMessage } from '../messaging/types';
 
 /**
  * Service that provides methods for encryption and decryption.
  */
-export class CryptographyService {
+export class CryptoboxWrapper {
   // TODO change this to more fancy logging
   private readonly logger = console;
 
@@ -76,18 +75,6 @@ export class CryptographyService {
   }
 
   /**
-   * Decrypts envelope and returns parsed JSON as OtrMessage.
-   *
-   * When the session does not exist, cryptobox creates it from the received cipher text.
-   * @param envelope received envelope from OTR
-   */
-  public async decryptEnvelope(envelope: OtrEnvelope): Promise<OtrMessage> {
-    const sessionId = this.clientIdToSessionId(envelope.senderClientId);
-    const plainText = await this.decrypt(sessionId, envelope.cipherTextPayload);
-    return JSON.parse(plainText) as OtrMessage;
-  }
-
-  /**
    * Encrypts given plainText with given pre keys for the users.
    * @param plainText data to encrypt
    * @param clientsPreKeyBundles clientIds to their pre keys
@@ -106,6 +93,17 @@ export class CryptographyService {
       bundles.push(this.encryptPayloadForSession(sessionId, plainText, preKey));
     }
     return this.mapSessionPayloadBundles(bundles);
+  }
+
+  /**
+   * Decrypts cipher text for given client. When the session does not exist, cryptobox creates
+   * it from the received cipher text.
+   * @param clientId id of the client that sent this message
+   * @param cipherText base64 encoded cipher text to decrypt
+   * @returns PlainText decrypted plain text
+   */
+  public async decryptFromClient(clientId: ClientId, cipherText: CipherTextBase64): Promise<PlainText> {
+    return this.decrypt(this.clientIdToSessionId(clientId), cipherText);
   }
 
   /**

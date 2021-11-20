@@ -1,13 +1,13 @@
 import { MemoryEngine } from '@wireapp/store-engine';
 import { Cryptobox } from '@wireapp/cryptobox';
-import { CryptographyService } from './cryptography-service';
+import { CryptoboxWrapper } from './cryptobox-wrapper';
 
 const createService = async (name: string) => {
   const engine = new MemoryEngine();
   await engine.init(name);
 
   const cryptobox = new Cryptobox(engine);
-  const service = new CryptographyService(cryptobox);
+  const service = new CryptoboxWrapper(cryptobox);
   return { engine, cryptobox, service };
 };
 
