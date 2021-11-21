@@ -1,5 +1,5 @@
 import Api from '../api';
-import { AssetSharedResponse } from './model';
+import { AssetSharedResponse, OtrResult } from './model';
 import { AssetId, ClientId, TopicId } from '../model';
 import { AssetMetadata, NewTextOtrMessage, OtrEncryptedEvent, OtrMessage, OtrMessageEnvelope, OtrMessageType } from '../model/messages';
 import { Base64EncodedString } from '../cryptography/model';
@@ -21,11 +21,9 @@ export default class CommunicationService {
    * @param asset asset - in form of buffer.
    * @param metadata metadata about the asset.
    */
-  shareAsset = async (topicId: TopicId, asset: BufferSource, metadata: AssetMetadata): Promise<AssetSharedResponse> => {
+  shareAsset = async (topicId: TopicId, asset: BufferSource, metadata: AssetMetadata): Promise<OtrResult<AssetSharedResponse>> => {
     // obtain information about the conversation, prefetch data without blocking
-    const preKeyBundlePromise = this.api.getPrekeysForTopic(topicId).then(
-      preKeysBundles => ({ ...preKeysBundles.me, ...preKeysBundles.recipients }) // TODO maybe filter this client?
-    );
+    const preKeyBundlePromise = this.prekeyBundle(topicId);
     // encrypt asset
     const { cipherText, key, sha256 } = await this.cryptography.encryptAsset(asset);
     // upload it to the servers
@@ -37,7 +35,7 @@ export default class CommunicationService {
     const envelopes = await this.cryptography.encryptEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
     // and ship them!
     const otrResult = await this.api.postOtrEnvelopes(topicId, envelopes);
-    return { ...assetUploadResult, ...otrResult };
+    return { otrMessage, response: { ...assetUploadResult, ...otrResult } };
   };
 
   /**
@@ -45,15 +43,22 @@ export default class CommunicationService {
    * @param topicId topic where to send the message
    * @param text text message
    */
-  sendText = async (topicId: TopicId, text: string): Promise<OtrPostResponse> => {
-    const preKeyBundlePromise = this.api.getPrekeysForTopic(topicId).then(
-      preKeysBundles => ({ ...preKeysBundles.me, ...preKeysBundles.recipients }) // TODO maybe filter this client?
-    );
+  sendText = async (topicId: TopicId, text: string): Promise<OtrResult<OtrPostResponse>> => {
+    const preKeyBundlePromise = this.prekeyBundle(topicId);
     const assetMessage: NewTextOtrMessage = { topicId, text };
     const otrMessage: OtrMessageEnvelope = { type: OtrMessageType.NEW_TEXT, data: assetMessage };
     const envelopes = await this.cryptography.encryptEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
-    return this.api.postOtrEnvelopes(topicId, envelopes);
+    const response = await this.api.postOtrEnvelopes(topicId, envelopes);
+    return { otrMessage, response };
   };
+
+  private prekeyBundle = async (topicId: TopicId) => this.api.getPrekeysForTopic(topicId).then(
+    preKeysBundles => {
+      const wholeBundle = { ...preKeysBundles.me, ...preKeysBundles.recipients };
+      // TODO consider leveraging this to backend
+      delete wholeBundle[this.thisClientId]; // do not encrypt for this client
+      return wholeBundle;
+    });
 
   /**
    * Downloads and decrypts asset.
@@ -99,4 +104,4 @@ export default class CommunicationService {
     // let's wait until all of them are decrypted and respond with decrypted data
     return await Promise.all(decryptionQueue);
   };
-}
+};

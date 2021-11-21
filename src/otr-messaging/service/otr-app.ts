@@ -4,9 +4,10 @@ import TroyStorage, { AssetCacheStorage } from '../storage';
 import CommunicationService from './communication-service';
 import { AssetSharedResponse } from './model';
 import { AssetId, ClientId, TopicId, UserId } from '../model';
-import { AssetMetadata, NewAssetOtrMessage, OtrMessageType } from '../model/messages';
+import { AssetMetadata, NewAssetOtrMessage, OtrMessageEnvelope, OtrMessageType } from '../model/messages';
 import { getFileExtension } from '../utils/file-utils';
 import { AssetDecryptionKey, CurrentUserData, StoredEvent, UsersData } from '../storage/storage-schemata';
+import { OtrPostResponse } from '../api/model/otr';
 
 export interface OtrAppOptions {
   shouldUseCaching?: boolean;
@@ -42,6 +43,7 @@ export class OtrApp {
   private readonly eventsFetchIntervalSeconds: number;
 
   constructor(
+    private readonly userId: UserId,
     private readonly clientId: ClientId,
     private readonly storage: TroyStorage,
     private readonly api: Api,
@@ -73,7 +75,6 @@ export class OtrApp {
       if (events.length === 0) {
         return;
       }
-
       const eventsToStore = events.map(event => ({
         eventId: event.eventId,
         createdAt: event.createdAt,
@@ -81,21 +82,8 @@ export class OtrApp {
         type: event.otrMessageEnvelope.type,
         message: event.otrMessageEnvelope.data
       } as StoredEvent));
-      // store events
-      await this.storage.storeEvent(eventsToStore);
-      // now find events that are related to assets and extract their decryption keys
-      const assetKeys = eventsToStore.filter(event => event.type === OtrMessageType.NEW_ASSET)
-      .map(assetEvent => {
-        const newAssetMessage = assetEvent.message as NewAssetOtrMessage;
-        return {
-          assetId: newAssetMessage.assetId,
-          key: newAssetMessage.key,
-          sha256: newAssetMessage.sha256
-        } as AssetDecryptionKey;
-      });
-      await this.storage.storeAssetDecryptionKeys(assetKeys);
-      // and dispatch information that the application saw new events
-      onNewEvent(eventsToStore);
+      // wait until all data are stored
+      await this.processEventsToStore(eventsToStore);
     }, this.eventsFetchIntervalSeconds * 1000);
   };
 
@@ -113,20 +101,60 @@ export class OtrApp {
       fileExtension: getFileExtension(file.name)
     };
     // share the asset
-    const sharedResponse = await this.communicationService.shareAsset(topic, arrayBuffer, metaData);
+    const { otrMessage, response } = await this.communicationService.shareAsset(topic, arrayBuffer, metaData);
     // store unencrypted asset in cache
-    await this.cachingService.cacheAsset(sharedResponse.assetId, arrayBuffer);
+    await this.cachingService.cacheAsset(response.assetId, arrayBuffer);
+    // fire event
+    this.reconstructAndFireEvent(otrMessage, response);
     // and return result
-    return sharedResponse;
+    return response;
   };
-
 
   /**
    * * Send and text message.
    *
    * See CommunicationService.sendText;
    */
-  sendText = this.communicationService.sendText;
+  sendText = async (topicId: TopicId, text: string): Promise<OtrPostResponse> => {
+    const { otrMessage, response } = await this.communicationService.sendText(topicId, text);
+    this.reconstructAndFireEvent(otrMessage, response);
+    return response;
+  };
+
+  private processEventsToStore = async (eventsToStore: StoredEvent[]) => {
+    // store events
+    await this.storage.storeEvent(eventsToStore);
+    // now find events that are related to assets and extract their decryption keys
+    const assetKeys = eventsToStore.filter(event => event.type === OtrMessageType.NEW_ASSET)
+    .map(assetEvent => {
+      const newAssetMessage = assetEvent.message as NewAssetOtrMessage;
+      return {
+        assetId: newAssetMessage.assetId,
+        key: newAssetMessage.key,
+        sha256: newAssetMessage.sha256
+      } as AssetDecryptionKey;
+    });
+    // store data
+    await this.storage.storeAssetDecryptionKeys(assetKeys);
+    // and dispatch information that the application saw new events
+    if (this.onNewEventListener) {
+      this.onNewEventListener(eventsToStore);
+    }
+  };
+
+  private reconstructAndFireEvent = (otrMessage: OtrMessageEnvelope, response: OtrPostResponse) => {
+    // construct event back
+    const event: StoredEvent = {
+      eventId: response.eventId,
+      createdAt: response.createdAt,
+      sendingUser: this.userId,
+      type: otrMessage.type,
+      message: otrMessage.data
+    };
+    // fire and forget
+    // noinspection ES6MissingAwait,JSIgnoredPromiseFromCall
+    this.processEventsToStore([event]);
+  };
 
   /**
    * Fetches and decrypts asset - uses caching.

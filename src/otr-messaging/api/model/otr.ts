@@ -36,6 +36,10 @@ export interface OtrPostResponse {
    */
   eventId: EventId;
   /**
+   * When was the event created on the server.
+   */
+  createdAt: OtrTime;
+  /**
    * List of users that will receive the message.
    */
   usersReceiving: UserId[];

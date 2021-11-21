@@ -39,7 +39,7 @@ const createOtrApp = async (options: { api: ApiOptions, otr?: OtrAppOptions }) =
   }
   const communicationService = new CommunicationService(api, crypto, currentUser.clientId);
   const cachingService = new AssetCacheStorage(storage);
-  return new OtrApp(currentUser.clientId, storage, api, crypto, communicationService, cachingService, options?.otr);
+  return new OtrApp(currentUser.userId, currentUser.clientId, storage, api, crypto, communicationService, cachingService, options?.otr);
 };
 
 export { createOtrApp, CommunicationService };
