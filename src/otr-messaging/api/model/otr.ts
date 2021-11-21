@@ -15,10 +15,6 @@ export interface EventsFilter {
    * Maximal number of events to fetch.
    */
   limit?: number;
-  /**
-   * Return only notifications that were not received yet.
-   */
-  onlyUnread?: boolean;
 }
 
 // RESPONSE: GET api/v1/events/{clientId}?filter=xxxx
@@ -54,4 +50,17 @@ export interface OtrPostResponse {
  * Note: users didn't receive anything at this point.
  */
 // RESPONSE: GET api/v1/topics/{topicId}/visibility
-export type OtrMessageVisibility = OtrPostResponse
+export interface OtrMessageVisibility {
+  /**
+   * ID of the current user.
+   */
+  me: UserId;
+  /**
+   * List of users that will receive the message (excluding current user with ID in "me" property).
+   */
+  usersReceiving: UserId[];
+  /**
+   * List of users that won't receive message as they don't have any client.
+   */
+  usersUnableToReceive: UserId[];
+}

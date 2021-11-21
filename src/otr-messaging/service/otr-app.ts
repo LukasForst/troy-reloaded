@@ -68,7 +68,7 @@ export class OtrApp {
     // and start execution once again
     this.onNewEventListener = onNewEvent;
     this.eventsFetchIntervalId = window.setInterval(async () => {
-      const events = await this.communicationService.fetchAllEvents(this.clientId, { onlyUnread: true });
+      const events = await this.communicationService.fetchAllEvents(this.clientId, {});
       const eventsToStore = events.map(event => ({
         eventId: event.eventId,
         createdAt: event.createdAt,

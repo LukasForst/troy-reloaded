@@ -36,7 +36,7 @@ export default class CommunicationService {
     // encrypt envelopes
     const envelopes = await this.cryptography.encryptEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
     // and ship them!
-    const otrResult = await this.api.postOtrEnvelopes(envelopes);
+    const otrResult = await this.api.postOtrEnvelopes(topicId, envelopes);
     return { ...assetUploadResult, ...otrResult };
   };
 

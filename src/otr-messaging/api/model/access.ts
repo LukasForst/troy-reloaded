@@ -9,7 +9,7 @@ export interface AccessToken {
   /**
    * When does the token expire.
    */
-  expiresInMinutes: number;
+  expiresInSeconds: number;
   /**
    * Type of the token - usually Bearer.
    */

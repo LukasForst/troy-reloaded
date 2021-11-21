@@ -23,7 +23,7 @@ export default class Api {
   ) {
     this.a = axios.create({
       baseURL: options.baseUrl,
-      timeout: 1000,
+      timeout: 10000,
       headers: accessToken ? { 'Authorization': accessToken } : {}
     });
   }
@@ -46,8 +46,8 @@ export default class Api {
    * @param prekeys prekeys from cryptobox to store
    */
   registerNewPrekeys = async (clientId: ClientId, prekeys: SerializedPrekey[]): Promise<void> => {
-    // POST api/v1/clients/{clientId}/prekeys
-    await this.a.post(`/clients/${clientId}/prekeys`, prekeys);
+    // PUT api/v1/clients/{clientId}/prekeys
+    await this.a.put(`/clients/${clientId}/prekeys`, { prekeys });
   };
 
   /**
@@ -86,7 +86,7 @@ export default class Api {
       userIds = [userIds];
     }
 
-    const result = await this.a.post(`/users`, userIds);
+    const result = await this.a.post(`/users`, { ids: userIds });
     return result.data as UserDetail[];
   };
 
@@ -113,7 +113,7 @@ export default class Api {
   };
 
   /**
-   * Gets all clients in the given topic.
+   * Gets all clients prekeys in the given topic.
    *
    * Note: this method should be called when the user wants to send an OTR message.
    * @param topicId id of the conversation
@@ -138,14 +138,17 @@ export default class Api {
 
   /**
    * Sends OTR message to the system.
-   * @param envelopes array or a single OTR envelope to be sent.
+   * @param topicId ID of the topic where to post the envelopes
+   * @param envelopes array or a single OTR envelope to be sent
    */
-  postOtrEnvelopes = async (envelopes: OtrEncryptedMessageEnvelope[] | OtrEncryptedMessageEnvelope): Promise<OtrPostResponse> => {
-    // POST api/v1/otr
+  postOtrEnvelopes = async (
+    topicId: TopicId, envelopes: OtrEncryptedMessageEnvelope[] | OtrEncryptedMessageEnvelope
+  ): Promise<OtrPostResponse> => {
+    // POST api/v1/topics/{topicId}/otr
     if (!Array.isArray(envelopes)) {
       envelopes = [envelopes];
     }
-    const result = await this.a.post(`/otr`, envelopes);
+    const result = await this.a.post(`/topics/${topicId}/otr`, { envelopes });
     return result.data as OtrPostResponse;
   };
 
