@@ -6,18 +6,28 @@ import { AssetUploadResponse } from './model/asset';
 import { TopicPrekeysResponse } from './model/topic';
 import { EventsFilter, OtrEventsBundleResponse, OtrMessageVisibility, OtrPostResponse } from './model/otr';
 import { ClientDetail, UserDetail } from '../model/user';
+import axios, { AxiosInstance } from 'axios';
 
 export interface ApiOptions {
-  backendUrl?: string;
+  baseUrl: string;
 }
 
+// TODO error handling
 export default class Api {
 
+  private a: AxiosInstance;
+
   constructor(
-    private accessToken?: string,
-    private readonly options?: ApiOptions
+    private readonly options: ApiOptions,
+    private accessToken?: string
   ) {
+    this.a = axios.create({
+      baseURL: options.baseUrl,
+      timeout: 1000,
+      headers: accessToken ? { 'Authorization': accessToken } : {}
+    });
   }
+
 
   /**
    * Registers new client in the backend.
@@ -26,9 +36,8 @@ export default class Api {
    */
   registerNewClient = async (lastResortKey: SerializedPrekey, prekeys: SerializedPrekey[]): Promise<ClientDetail> => {
     // POST api/v1/clients
-
-    // TODO implement this
-    return Promise.reject();
+    const result = await this.a.post('/clients', { lastResortKey, prekeys });
+    return result.data as ClientDetail;
   };
 
   /**
@@ -37,9 +46,8 @@ export default class Api {
    * @param prekeys prekeys from cryptobox to store
    */
   registerNewPrekeys = async (clientId: ClientId, prekeys: SerializedPrekey[]): Promise<void> => {
-    // PUT api/v1/clients/{clientId}/prekeys
-    // TODO implement this
-    return Promise.reject();
+    // POST api/v1/clients/{clientId}/prekeys
+    await this.a.post(`/clients/${clientId}/prekeys`, prekeys);
   };
 
   /**
@@ -50,12 +58,11 @@ export default class Api {
    */
   getAccessToken = async (): Promise<AccessToken> => {
     // POST api/v1/access
-
-    // TODO implement this
-    // obtain token
-    const token = await Promise.reject<AccessToken>();
+    const result = await this.a.post(`/access`, undefined, { withCredentials: true });
+    const token = result.data as AccessToken;
     // update token in this class so we will keep it for the next time
     this.accessToken = `${token.type} ${token.token}`;
+    this.a.defaults.headers.common['Authorization'] = this.accessToken;
     // and return the token instance
     return token;
   };
@@ -66,42 +73,43 @@ export default class Api {
    */
   getSelf = async (): Promise<UserDetail> => {
     // GET api/v1/self
-
-    // TODO implement this
-    return Promise.reject();
+    const result = await this.a.get(`/self`);
+    return result.data as UserDetail;
   };
 
   /**
    * Get information about users.
    */
   getUserDetails = async (userIds: UserId | UserId[]): Promise<UserDetail[]> => {
+    // POST api/v1/users
     if (!Array.isArray(userIds)) {
       userIds = [userIds];
     }
-    // TODO implement this
-    return Promise.reject();
+
+    const result = await this.a.post(`/users`, userIds);
+    return result.data as UserDetail[];
   };
 
   /**
    * Uploads encrypted asset to the storage and returns information about the upload.
    * @param cipherText encrypted asset.
    */
-  uploadAsset = async (cipherText: Buffer): Promise<AssetUploadResponse> => {
+  uploadAsset = async (cipherText: ArrayBuffer): Promise<AssetUploadResponse> => {
     // POST api/v1/assets
-
-    // TODO implement this
-    return Promise.reject();
+    const result = await this.a.post('/assets', cipherText, {
+      headers: { 'Content-Type': 'application/octet-stream' }
+    });
+    return result.data as AssetUploadResponse;
   };
 
   /**
    * Downloads encrypted asset, returns buffer with cipher text.
    * @param assetId id of the asset to download
    */
-  downloadAsset = async (assetId: AssetId): Promise<Buffer> => {
+  downloadAsset = async (assetId: AssetId): Promise<ArrayBuffer> => {
     // GET api/v1/assets/{assetId}
-
-    // TODO implement this
-    return Promise.reject();
+    const result = await this.a.get(`/assets/${assetId}`, { responseType: 'arraybuffer' });
+    return result.data as ArrayBuffer;
   };
 
   /**
@@ -113,9 +121,8 @@ export default class Api {
   getPrekeysForTopic = async (topicId: TopicId): Promise<TopicPrekeysResponse> => {
     // TODO check if get is in this context correct or not (in terms of caching)
     // GET api/v1/topics/{topicId}/prekeys
-
-    // TODO implement this
-    return Promise.reject();
+    const result = await this.a.get(`/topics/${topicId}/prekeys`);
+    return result.data as TopicPrekeysResponse;
   };
 
   /**
@@ -125,8 +132,8 @@ export default class Api {
    */
   getOtrMessageVisibilityForTopic = async (topicId: TopicId): Promise<OtrMessageVisibility> => {
     // GET api/v1/topics/{topicId}/visibility
-    // TODO implement this
-    return Promise.reject();
+    const result = await this.a.get(`/topics/${topicId}/visibility`);
+    return result.data as OtrMessageVisibility;
   };
 
   /**
@@ -135,17 +142,16 @@ export default class Api {
    */
   postOtrEnvelopes = async (envelopes: OtrEncryptedMessageEnvelope[] | OtrEncryptedMessageEnvelope): Promise<OtrPostResponse> => {
     // POST api/v1/otr
-
     if (!Array.isArray(envelopes)) {
       envelopes = [envelopes];
     }
-    // TODO implement this
-    return Promise.reject(envelopes);
+    const result = await this.a.post(`/otr`, envelopes);
+    return result.data as OtrPostResponse;
   };
 
   /**
    * Gets events for the client according to the filter.
-   * @param clientId ID of the client that requests the evetns
+   * @param clientId ID of the client that requests the events
    * @param filter to use
    */
   getEvents = async (
@@ -153,8 +159,7 @@ export default class Api {
     filter?: EventsFilter
   ): Promise<OtrEventsBundleResponse> => {
     // GET api/v1/events/{clientId}?filter=xxxx
-
-    // TODO implement this
-    return Promise.reject();
+    const result = await this.a.get(`/events/${clientId}`, { params: filter });
+    return result.data as OtrEventsBundleResponse;
   };
 }

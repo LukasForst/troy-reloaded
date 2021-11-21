@@ -6,6 +6,7 @@
     "@wireapp/cryptobox": "^12.7.1",
     "@wireapp/store-engine": "^4.9.7",
     "@wireapp/store-engine-dexie": "^1.6.7",
+    "axios": "^0.24.0",
     "logdown": "^3.3.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
