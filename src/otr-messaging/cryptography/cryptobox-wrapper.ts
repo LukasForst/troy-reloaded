@@ -31,19 +31,19 @@ export class CryptoboxWrapper {
    * Create instance of cryptobox in the storage, this should be called when
    * the client was not used yet and the storage is empty.
    */
-  public async createCryptobox(): Promise<SerializedPrekey[]> {
+  createCryptobox = async (): Promise<SerializedPrekey[]> => {
     const initialPreKeys = await this.cryptobox.create();
     return this.serializeInitialKeys(initialPreKeys);
-  }
+  };
 
   /**
    * Initialize cryptobox, tries to load data from the storage.
    * @returns SerializedPrekey[] all keys that were in the storage
    */
-  public async initCryptobox(): Promise<SerializedPrekey[]> {
+  initCryptobox = async (): Promise<SerializedPrekey[]> => {
     const rawKeys = await this.cryptobox.load();
     return this.serializeInitialKeys(rawKeys);
-  }
+  };
 
   /**
    * Returns public key fingerprint.
@@ -66,7 +66,7 @@ export class CryptoboxWrapper {
    *
    * This function should be called before accessing the cryptobox itself.
    */
-  public async initOrCreate(): Promise<CryptoboxInitialisation> {
+  initOrCreate = async (): Promise<CryptoboxInitialisation> => {
     let prekeys;
     let createdNew = false;
     try {
@@ -81,17 +81,17 @@ export class CryptoboxWrapper {
       createdNew, prekeys,
       lastResortKey: this.getLastResortPreKey()
     };
-  }
+  };
 
   /**
    * Returns serialized last resort pre key.
    */
-  public getLastResortPreKey(): SerializedPrekey {
+  getLastResortPreKey = (): SerializedPrekey => {
     if (!this.cryptobox.lastResortPreKey) {
       throw new Error('Cryptobox got initialized without a last resort PreKey.');
     }
     return this.cryptobox.serialize_prekey(this.cryptobox.lastResortPreKey);
-  }
+  };
 
   /**
    * Encrypts given plainText with given pre keys for the users.
@@ -99,10 +99,10 @@ export class CryptoboxWrapper {
    * @param clientsPreKeyBundles clientIds to their pre keys
    * @returns ClientsCipherTextMap clientIds to base64 encoded cipher text
    */
-  public async encryptForClientsWithPreKeys(
+  encryptForClientsWithPreKeys = async (
     plainText: PlainText,
     clientsPreKeyBundles: ClientsPrekeyBundle
-  ): Promise<ClientsCipherTextMap> {
+  ): Promise<ClientsCipherTextMap> => {
     const bundles: Promise<SessionPayloadBundle>[] = [];
 
     // encrypt plainText using sessions
@@ -112,7 +112,7 @@ export class CryptoboxWrapper {
       bundles.push(this.encryptPayloadForSession(sessionId, plainText, preKey));
     }
     return this.mapSessionPayloadBundles(bundles);
-  }
+  };
 
   /**
    * Decrypts cipher text for given client. When the session does not exist, cryptobox creates
@@ -121,9 +121,8 @@ export class CryptoboxWrapper {
    * @param cipherText base64 encoded cipher text to decrypt
    * @returns PlainText decrypted plain text
    */
-  public async decryptFromClient(clientId: ClientId, cipherText: CipherTextBase64): Promise<PlainText> {
-    return this.decrypt(this.clientIdToSessionId(clientId), cipherText);
-  }
+  decryptFromClient = async (clientId: ClientId, cipherText: CipherTextBase64): Promise<PlainText> =>
+    this.decrypt(this.clientIdToSessionId(clientId), cipherText);
 
   /**
    * Decrypts cipher text for given session. When the session does not exist, cryptobox creates
@@ -132,20 +131,20 @@ export class CryptoboxWrapper {
    * @param cipherText base64 encoded cipher text to decrypt
    * @returns PlainText decrypted plain text
    */
-  public async decrypt(sessionId: SessionId, cipherText: CipherTextBase64): Promise<PlainText> {
+  decrypt = async (sessionId: SessionId, cipherText: CipherTextBase64): Promise<PlainText> => {
     this.logger.log(`Decrypting message for session ID "${sessionId}"`);
     const messageBytes = Decoder.fromBase64(cipherText).asBytes;
     const plainTextArray = await this.cryptobox.decrypt(sessionId, messageBytes.buffer);
     return Buffer.from(plainTextArray).toString('utf8');
-  }
+  };
 
   /**
    * Resets session with sessionId. Useful when having issues with decrypting.
    */
-  public async resetSession(sessionId: string): Promise<void> {
+  resetSession = async (sessionId: string): Promise<void> => {
     await this.cryptobox.session_delete(sessionId);
     this.logger.log(`Deleted session ID "${sessionId}".`);
-  }
+  };
 
   /**
    * Encrypts given plainText with sessions for given users.
@@ -153,10 +152,10 @@ export class CryptoboxWrapper {
    * @param clients clientIds where the application has session with them
    * @returns ClientsCipherTextMap clientIds to base64 encoded cipher text
    */
-  public async encryptWithSessionForClients(
+  encryptWithSessionForClients = async (
     plainText: PlainText,
     clients: ClientId[]
-  ): Promise<ClientsCipherTextMap> {
+  ): Promise<ClientsCipherTextMap> => {
     const bundles: Promise<SessionPayloadBundle>[] = [];
     // encrypt plainText using sessions
     for (const client of clients) {
@@ -164,12 +163,12 @@ export class CryptoboxWrapper {
       bundles.push(this.encryptPayloadForSession(sessionId, plainText));
     }
     return this.mapSessionPayloadBundles(bundles);
-  }
+  };
 
   /**
    * Returns serialized keys - filters last resort key from the collection.
    */
-  private serializeInitialKeys(rawKeys: ProteusKeys.PreKey[]): SerializedPrekey[] {
+  private serializeInitialKeys = (rawKeys: ProteusKeys.PreKey[]): SerializedPrekey[] => {
     return rawKeys.map(preKey => {
       const preKeyJson = this.cryptobox.serialize_prekey(preKey);
       if (preKeyJson.id !== ProteusKeys.PreKey.MAX_PREKEY_ID) {
@@ -178,9 +177,9 @@ export class CryptoboxWrapper {
       return { id: -1, key: '' };
     })
     .filter(serializedPreKey => serializedPreKey.key);
-  }
+  };
 
-  private async mapSessionPayloadBundles(bundles: Promise<SessionPayloadBundle>[]): Promise<ClientsCipherTextMap> {
+  private mapSessionPayloadBundles = async (bundles: Promise<SessionPayloadBundle>[]): Promise<ClientsCipherTextMap> => {
     // wait until plainText is encrypted for each client
     const payloads = await Promise.all(bundles);
     // map data to final object
@@ -193,13 +192,13 @@ export class CryptoboxWrapper {
       recipients[clientId] = Encoder.toBase64(encryptedPayload).asString;
       return recipients;
     }, {} as ClientsCipherTextMap);
-  }
+  };
 
-  private async encryptPayloadForSession(
+  private encryptPayloadForSession = async (
     sessionId: string,
     plainText: PlainText,
     preKey?: Base64EncodedString
-  ): Promise<SessionPayloadBundle> {
+  ): Promise<SessionPayloadBundle> => {
     this.logger.log(`Encrypting payload for session ID "${sessionId}"`);
     let encryptedPayload: Uint8Array;
 
@@ -219,7 +218,7 @@ export class CryptoboxWrapper {
     }
 
     return { encryptedPayload, sessionId };
-  }
+  };
 
   // we left that here so we can change that once we will need more sophisticated mapping
   private clientIdToSessionId = (clientId: ClientId): SessionId => clientId;
