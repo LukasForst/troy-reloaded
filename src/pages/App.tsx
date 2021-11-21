@@ -1,49 +1,44 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react';
-import logo from '../assets/logo.svg';
 import './App.css';
-import { prepareStorage } from '../storage';
-import Cryptography from '../cryptography';
-import CommunicationService from '../service/communication-service';
-import Api from '../api';
+import { createOtrApp, OtrApp } from '../service';
 
-function App() {
-  const userId = 'alice';
-  const clientId = 'alices-client';
-  const [service, setService] = useState<CommunicationService | undefined>(undefined);
+export const App = () => {
+  const [state, setState] = useState<'login-needed' | 'loading' | 'finished'>('loading');
+  const [otrApp, setOtrApp] = useState<OtrApp | undefined>(undefined);
 
   // effect for creating all instance of the communication service
   useEffect(() => {
-    prepareStorage(userId)
-    .then(({ engine, db }) => {
-      const crypto = Cryptography.createWithEngine(engine);
-      const service = new CommunicationService(new Api(), crypto, clientId);
-      // initialize service
-      crypto.initialize()
-      .then((keys) => {
-        setService(service);
-      });
+    // do not execute when otrApp is already in place
+    if (otrApp) {
+      return;
+    }
+    // initialise app
+    createOtrApp()
+    .then(app => {
+      app.listen((events => {
+        // TODO here bind it to redux dispatch
+        console.log('new events', events);
+      }));
+      // now the app is ready, set it to state
+      setOtrApp(app);
+      // and send that we finished the initialisation
+      setState('finished');
+    })
+    // when this fails, user is not logged in
+    .catch(() => {
+      setState('login-needed');
     });
-  }, [userId]);
-
+    // eslint-disable-next-line
+  }, []);
+  // print self to console
+  otrApp?.getSelf().then(self => console.log('self', self));
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo"/>
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <p>State? {state}</p>
       </header>
     </div>
   );
-}
+};
 
 export default App;
