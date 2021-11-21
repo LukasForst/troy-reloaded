@@ -1,10 +1,11 @@
 import Api from '../api';
-import { AssetUploadResult, NotificationsFilter, OtrNotification, OtrNotificationsBundle, OtrPostResult } from '../api/model';
-import { DecryptedNotification } from './model';
-import { AssetId, ClientId, ConversationId } from '../model';
-import { AssetMetadata, OtrMessage } from '../model/messages';
+import { AssetSharedResponse } from './model';
+import { AssetId, ClientId, TopicId } from '../model';
+import { AssetMetadata, OtrEncryptedEvent, OtrMessage, OtrMessageEnvelope, OtrMessageType } from '../model/messages';
 import { Base64EncodedString } from '../cryptography/model';
 import CryptographyService from '../cryptography';
+import { EventsFilter } from '../api/model/otr';
+import { DecryptedOtrEvent } from '../model/events';
 
 export default class CommunicationService {
   constructor(
@@ -16,13 +17,13 @@ export default class CommunicationService {
 
   /**
    * Shares given file to the given conversation.
-   * @param conversationId ID of the conversation where should be asset posted.
+   * @param topicId ID of the topic where should be asset posted.
    * @param asset asset - in form of buffer.
    * @param metadata metadata about the asset.
    */
-  shareAsset = async (conversationId: ConversationId, asset: BufferSource, metadata: AssetMetadata): Promise<{ asset: AssetUploadResult, otr: OtrPostResult }> => {
+  shareAsset = async (topicId: TopicId, asset: BufferSource, metadata: AssetMetadata): Promise<AssetSharedResponse> => {
     // obtain information about the conversation, prefetch data without blocking
-    const preKeyBundlePromise = this.api.getPrekeysForConversation(conversationId).then(
+    const preKeyBundlePromise = this.api.getPrekeysForTopic(topicId).then(
       preKeysBundles => ({ ...preKeysBundles.me, ...preKeysBundles.recipients }) // TODO maybe filter this client?
     );
     // encrypt asset
@@ -30,13 +31,13 @@ export default class CommunicationService {
     // upload it to the servers
     const assetUploadResult = await this.api.uploadAsset(cipherText);
     // build otr message
-    const assetMessage = { conversationId, assetId: assetUploadResult.assetId, key, sha256, metadata };
-    const otrMessage: OtrMessage = { type: 'new-asset', data: assetMessage };
+    const assetMessage: OtrMessage = { topicId, assetId: assetUploadResult.assetId, key, sha256, metadata };
+    const otrMessage: OtrMessageEnvelope = { type: OtrMessageType.NEW_ASSET, data: assetMessage };
     // encrypt envelopes
-    const envelopes = await this.cryptography.encryptToEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
+    const envelopes = await this.cryptography.encryptEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
     // and ship them!
-    const otrResult = await this.api.postOtrEnvelope(envelopes);
-    return { asset: assetUploadResult, otr: otrResult };
+    const otrResult = await this.api.postOtrEnvelopes(envelopes);
+    return { ...assetUploadResult, ...otrResult };
   };
 
   /**
@@ -54,27 +55,30 @@ export default class CommunicationService {
   };
 
   /**
-   * Fetches and decrypts all notifications for given filter.
-   * @param filter see Api.getNotifications
+   * Fetches and decrypts all events for given filter.
+   * @param clientId ID of the receiving client
+   * @param filter see Api.getEvents
    */
-  fetchAllNotifications = async (filter?: NotificationsFilter): Promise<DecryptedNotification[]> => {
-    const notifications: OtrNotification[] = [];
-    let bundle: OtrNotificationsBundle;
-    // fetch all notifications
+  fetchAllEvents = async (clientId: ClientId, filter?: EventsFilter): Promise<DecryptedOtrEvent[]> => {
+    const eventsToDecrypt: OtrEncryptedEvent[] = [];
+    let hasMoreEvents = false;
+    // fetch all events
     do {
-      bundle = await this.api.getNotifications(this.thisClientId, filter);
-      notifications.push(...bundle.notifications);
-    } while (bundle.hasMore);
+      const bundle = await this.api.getEvents(this.thisClientId, filter);
+      eventsToDecrypt.push(...bundle.events);
+      hasMoreEvents = bundle.hasMore;
+    } while (hasMoreEvents);
     // and now let's decrypt it and map it
-    const decryptionQueue = notifications.map(async (notification) => {
+    const decryptionQueue = eventsToDecrypt.map(async (event) => {
       // TODO what if this fails?
-      const otrMessage = await this.cryptography.decryptEnvelope(notification.envelope);
+      const otrMessageEnvelope = await this.cryptography.decryptEnvelope(event.envelope);
       return {
-        notificationId: notification.notificationId,
-        createdAt: notification.createdAt,
-        senderClientId: notification.envelope.senderClientId,
-        recipientClientId: notification.envelope.recipientClientId,
-        otrMessage
+        eventId: event.eventId,
+        createdAt: event.createdAt,
+        sendingUser: event.sendingUser,
+        senderClientId: event.envelope.senderClientId,
+        recipientClientId: event.envelope.recipientClientId,
+        otrMessageEnvelope
       };
     });
     // let's wait until all of them are decrypted and respond with decrypted data

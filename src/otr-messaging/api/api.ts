@@ -1,17 +1,11 @@
 import { SerializedPrekey } from '../cryptography/model';
-import {
-  AccessToken,
-  AssetUploadResult,
-  ConversationMessageVisibility,
-  ConversationPrekeys,
-  CreateClientResponse,
-  NotificationsFilter,
-  OtrNotificationsBundle,
-  OtrPostResult,
-  Self
-} from './model';
-import { AssetId, ClientId, ConversationId } from '../model';
-import { OtrEnvelope } from '../model/messages';
+import { AssetId, ClientId, TopicId, UserId } from '../model';
+import { OtrEncryptedMessageEnvelope } from '../model/messages';
+import { AccessToken } from './model/access';
+import { AssetUploadResponse } from './model/asset';
+import { TopicPrekeysResponse } from './model/topic';
+import { EventsFilter, OtrEventsBundleResponse, OtrMessageVisibility, OtrPostResponse } from './model/otr';
+import { ClientDetail, UserDetail } from '../model/user';
 
 export interface ApiOptions {
   backendUrl?: string;
@@ -30,7 +24,9 @@ export default class Api {
    * @param lastResortKey last key from the cryptobox that can be reused
    * @param prekeys published prekeys
    */
-  registerNewClient = async (lastResortKey: SerializedPrekey, prekeys: SerializedPrekey[]): Promise<CreateClientResponse> => {
+  registerNewClient = async (lastResortKey: SerializedPrekey, prekeys: SerializedPrekey[]): Promise<ClientDetail> => {
+    // POST api/v1/clients
+
     // TODO implement this
     return Promise.reject();
   };
@@ -41,6 +37,7 @@ export default class Api {
    * @param prekeys prekeys from cryptobox to store
    */
   registerNewPrekeys = async (clientId: ClientId, prekeys: SerializedPrekey[]): Promise<void> => {
+    // PUT api/v1/clients/{clientId}/prekeys
     // TODO implement this
     return Promise.reject();
   };
@@ -52,6 +49,8 @@ export default class Api {
    * Note: this operation also updates Api.accessToken in this Api instance.
    */
   getAccessToken = async (): Promise<AccessToken> => {
+    // POST api/v1/access
+
     // TODO implement this
     // obtain token
     const token = await Promise.reject<AccessToken>();
@@ -65,7 +64,20 @@ export default class Api {
    * Gets information about current user.
    * Will throw exception when non 200 is returned.
    */
-  getSelf = async (): Promise<Self> => {
+  getSelf = async (): Promise<UserDetail> => {
+    // GET api/v1/self
+
+    // TODO implement this
+    return Promise.reject();
+  };
+
+  /**
+   * Get information about users.
+   */
+  getUserDetails = async (userIds: UserId | UserId[]): Promise<UserDetail[]> => {
+    if (!Array.isArray(userIds)) {
+      userIds = [userIds];
+    }
     // TODO implement this
     return Promise.reject();
   };
@@ -74,7 +86,9 @@ export default class Api {
    * Uploads encrypted asset to the storage and returns information about the upload.
    * @param cipherText encrypted asset.
    */
-  uploadAsset = async (cipherText: Buffer): Promise<AssetUploadResult> => {
+  uploadAsset = async (cipherText: Buffer): Promise<AssetUploadResponse> => {
+    // POST api/v1/assets
+
     // TODO implement this
     return Promise.reject();
   };
@@ -84,27 +98,33 @@ export default class Api {
    * @param assetId id of the asset to download
    */
   downloadAsset = async (assetId: AssetId): Promise<Buffer> => {
+    // GET api/v1/assets/{assetId}
+
     // TODO implement this
     return Promise.reject();
   };
 
   /**
-   * Gets all clients in the given conversation.
+   * Gets all clients in the given topic.
    *
    * Note: this method should be called when the user wants to send an OTR message.
-   * @param conversationId id of the conversation
+   * @param topicId id of the conversation
    */
-  getPrekeysForConversation = async (conversationId: ConversationId): Promise<ConversationPrekeys> => {
+  getPrekeysForTopic = async (topicId: TopicId): Promise<TopicPrekeysResponse> => {
+    // TODO check if get is in this context correct or not (in terms of caching)
+    // GET api/v1/topics/{topicId}/prekeys
+
     // TODO implement this
     return Promise.reject();
   };
 
   /**
-   * Returns information about given conversation - what users will be able to receive a message.
+   * Returns information about what users will be able to receive a message in this topic.
    *
-   * @param conversationId id of the conversation
+   * @param topicId id of the topic
    */
-  getMessageUploadVisibilityForConversation = async (conversationId: ConversationId): Promise<ConversationMessageVisibility> => {
+  getOtrMessageVisibilityForTopic = async (topicId: TopicId): Promise<OtrMessageVisibility> => {
+    // GET api/v1/topics/{topicId}/visibility
     // TODO implement this
     return Promise.reject();
   };
@@ -113,7 +133,9 @@ export default class Api {
    * Sends OTR message to the system.
    * @param envelopes array or a single OTR envelope to be sent.
    */
-  postOtrEnvelope = async (envelopes: OtrEnvelope[] | OtrEnvelope): Promise<OtrPostResult> => {
+  postOtrEnvelopes = async (envelopes: OtrEncryptedMessageEnvelope[] | OtrEncryptedMessageEnvelope): Promise<OtrPostResponse> => {
+    // POST api/v1/otr
+
     if (!Array.isArray(envelopes)) {
       envelopes = [envelopes];
     }
@@ -122,14 +144,16 @@ export default class Api {
   };
 
   /**
-   * Gets notifications for the client according to the filter.
-   * @param clientId ID of the client that requests the notifications
+   * Gets events for the client according to the filter.
+   * @param clientId ID of the client that requests the evetns
    * @param filter to use
    */
-  getNotifications = async (
+  getEvents = async (
     clientId: ClientId,
-    filter?: NotificationsFilter
-  ): Promise<OtrNotificationsBundle> => {
+    filter?: EventsFilter
+  ): Promise<OtrEventsBundleResponse> => {
+    // GET api/v1/events/{clientId}?filter=xxxx
+
     // TODO implement this
     return Promise.reject();
   };

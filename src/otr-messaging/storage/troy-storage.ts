@@ -1,16 +1,17 @@
 import Dexie, { Transaction } from 'dexie';
-import { AssetCache, AssetDecryptionKeys, ConversationAssets, SelfData, StorageSchemata, UsersData } from './storage-schemata';
-import { AssetId, ConversationId, UserId } from '../model';
+import { AssetCache, AssetDecryptionKey, CurrentUserData, StorageSchemata, StoredEvent, UsersData } from './storage-schemata';
+import { AssetId, EventId, TopicId, UserId } from '../model';
+import { OtrMessageType } from '../model/messages';
 
 /**
  * Storage repository for application data.
  */
 export class TroyStorage extends Dexie {
-  selfData!: Dexie.Table<SelfData, UserId>;
   usersData!: Dexie.Table<UsersData, UserId>;
-  assetsData!: Dexie.Table<AssetDecryptionKeys, AssetId>;
+  currentUserData!: Dexie.Table<CurrentUserData, UserId>;
   assetsCache!: Dexie.Table<AssetCache, AssetId>;
-  conversationsData!: Dexie.Table<ConversationAssets, ConversationId>;
+  assetsKeys!: Dexie.Table<AssetDecryptionKey, AssetId>;
+  events!: Dexie.Table<StoredEvent, EventId>;
 
   constructor(storeName: string) {
     super(storeName);
@@ -25,28 +26,6 @@ export class TroyStorage extends Dexie {
       return this.version(version).stores(schema);
     });
   }
-
-  /**
-   * Get current user.
-   */
-  getSelf = async () => this.transaction(
-    'readonly', this.selfData, async () => {
-      const maybeSelf = await this.selfData.toArray();
-      if (maybeSelf && maybeSelf.length !== 0) {
-        return maybeSelf[0];
-      } else {
-        return undefined;
-      }
-    }
-  );
-
-  /**
-   * Store current user in the database.
-   */
-  storeSelf = async (self: SelfData) => this.transaction(
-    'readwrite', this.selfData, async () =>
-      this.selfData.put(self, self.userId)
-  );
 
   /**
    * Finds user by user ID.
@@ -65,33 +44,32 @@ export class TroyStorage extends Dexie {
   );
 
   /**
-   * Returns list of conversation assets sorted by time.
+   * Get current user.
    */
-  listConversationAssets = async (conversationId: ConversationId) => this.transaction(
-    'readonly', this.conversationsData, async () =>
-      this.conversationsData.where('conversationId').equals(conversationId).sortBy('time')
+  getCurrentUser = async () => this.transaction(
+    'readonly', this.currentUserData, async () => {
+      const maybeSelf = await this.currentUserData.toArray();
+      if (maybeSelf && maybeSelf.length !== 0) {
+        return maybeSelf[0];
+      } else {
+        return undefined;
+      }
+    }
   );
 
   /**
-   * Returns asset data for given asset ID.
+   * Store current user in the database.
    */
-  getAsset = async (assetId: string) => this.transaction(
-    'readonly', this.assetsData, async () =>
-      this.assetsData.where('assetId').equals(assetId).first()
+  storeCurrentUser = async (user: CurrentUserData) => this.transaction(
+    'readwrite', this.currentUserData, async () =>
+      this.currentUserData.put(user, user.userId)
   );
 
-  /**
-   * Stores new asset in the database.
-   */
-  storeNewAsset = async (asset: ConversationAssets) => this.transaction(
-    'readwrite', this.conversationsData, async () =>
-      this.conversationsData.put(asset, asset.assetId)
-  );
 
   /**
    * Returns asset cache for given assetId.
    */
-  getAssetCache = async (assetId: string) => this.transaction(
+  getAssetCache = async (assetId: AssetId) => this.transaction(
     'readonly', this.assetsCache, async () =>
       this.assetsCache.where('assetId').equals(assetId).first()
   );
@@ -104,4 +82,55 @@ export class TroyStorage extends Dexie {
       this.assetsCache.put(asset, asset.assetId)
   );
 
+
+  /**
+   * Returns decryption keys for given asset ID.
+   */
+  getAssetDecryptionKeys = async (assetId: AssetId) => this.transaction(
+    'readonly', this.assetsKeys, async () =>
+      this.assetsKeys.where('assetId').equals(assetId).first()
+  );
+
+  /**
+   * Stores decryption keys in database.
+   */
+  storeAssetDecryptionKeys = async (assetKey: AssetDecryptionKey | AssetDecryptionKey[]) => this.transaction(
+    'readwrite', this.assetsKeys, async () => {
+      if (Array.isArray(assetKey)) {
+        this.assetsKeys.bulkPut(assetKey, assetKey.map(k => k.assetId));
+      } else {
+        this.assetsKeys.put(assetKey, assetKey.assetId);
+      }
+    }
+  );
+
+  /**
+   * Returns list of events for given topic.
+   */
+  listEventsInTopic = async (topic: TopicId) => this.transaction(
+    'readonly', this.events, async () =>
+      this.events.where('message.topicId').equals(topic).sortBy('createdAt')
+  );
+
+  /**
+   * Returns list of events for given topic and type.
+   */
+  listEventsInTopicAndType = async (topic: TopicId, type: OtrMessageType) => this.transaction(
+    'readonly', this.events, async () =>
+      this.events.where('[type+message.topicId]').equals([topic, type]).sortBy('createdAt')
+  );
+
+  /**
+   * Stores events in database.
+   */
+  storeEvent = async (events: StoredEvent | StoredEvent[]) => {
+    this.transaction('readwrite', this.events, async () => {
+        if (Array.isArray(events)) {
+          this.events.bulkPut(events, events.map(e => e.eventId));
+        } else {
+          this.events.put(events, events.eventId);
+        }
+      }
+    );
+  };
 }

@@ -1,43 +1,74 @@
 import type { Dexie, Transaction } from 'dexie';
-import { ClientId, ConversationId, OtrTime, UserId } from '../model';
+import { AssetId, EventId, OtrTime, UserId } from '../model';
+import { UserDetail } from '../model/user';
+import { OtrMessage, OtrMessageType } from '../model/messages';
 import { Base64EncodedString } from '../cryptography/model';
 
-export interface SelfData {
-  userId: UserId;
+/**
+ * Information about generic user.
+ */
+export type UsersData = UserDetail
+
+export interface CurrentUserData extends UsersData {
+  /**
+   * Client that is stored in this web context.
+   */
   clientId: string;
+  /**
+   * Cryptobox public key of this client.
+   */
   cryptoboxIdentity: string;
 }
 
-export interface UsersData {
-  userId: UserId;
-  displayName: string;
-  principal: string;
-  clients: ClientId[];
-}
-
 export interface AssetCache {
-  assetId: string;
+  /**
+   * Id of the asset.
+   */
+  assetId: AssetId;
+  /**
+   * Cache payload - decrypted file.
+   */
   payload?: ArrayBuffer;
 }
 
-export interface AssetDecryptionKeys {
-  assetId: string;
+export interface StoredEvent {
+  /**
+   * ID of the event.
+   */
+  eventId: EventId;
+  /**
+   * Timestamp when was the event created on the server.
+   */
+  createdAt: OtrTime;
+  /**
+   * User that sent this event.
+   */
+  sendingUser: UserId;
+  /**
+   * Type of the message.
+   */
+  type: OtrMessageType;
+  /**
+   * real message with data
+   */
+  message: OtrMessage;
+}
+
+export interface AssetDecryptionKey {
+  /**
+   * ID of the asset.
+   */
+  assetId: AssetId;
+  /**
+   * Decryption key.
+   */
   key: Base64EncodedString;
+  /**
+   * SHA
+   */
   sha256: Base64EncodedString;
 }
 
-export interface ConversationAssets {
-  conversationId: ConversationId;
-  assetId: string;
-  fileName: string;
-  length: string;
-  fileExtension: string;
-  senderId: UserId;
-  time: OtrTime;
-  wasDownloaded: boolean;
-  usersUnableToReceive: UserId[];
-  usersReceiving: UserId[];
-}
 
 interface DexieSchema {
   schema: Record<string, string>;
@@ -53,11 +84,11 @@ export class StorageSchemata {
       PRE_KEYS: 'prekeys',
       SESSIONS: 'sessions',
       // application data
-      SELF: 'selfData',
       USERS_DATA: 'usersData',
-      ASSETS_KEYS: 'assetsData',
+      CURRENT_USER_DATA: 'currentUserData',
       ASSETS_CACHE: 'assetsCache',
-      CONVERSATIONS_DATA: 'conversationsData'
+      ASSETS_KEYS: 'assetsKeys',
+      EVENTS: 'events'
     };
   }
 
@@ -68,12 +99,12 @@ export class StorageSchemata {
           [StorageSchemata.OBJECT_STORE.KEYS]: '',
           [StorageSchemata.OBJECT_STORE.PRE_KEYS]: '',
           [StorageSchemata.OBJECT_STORE.SESSIONS]: '',
-
-          [StorageSchemata.OBJECT_STORE.SELF]: '',
+          // application data
           [StorageSchemata.OBJECT_STORE.USERS_DATA]: 'userId, *clients',
-          [StorageSchemata.OBJECT_STORE.ASSETS_KEYS]: 'assetId',
+          [StorageSchemata.OBJECT_STORE.CURRENT_USER_DATA]: 'userId',
           [StorageSchemata.OBJECT_STORE.ASSETS_CACHE]: 'assetId',
-          [StorageSchemata.OBJECT_STORE.CONVERSATIONS_DATA]: 'conversationId, fileName, senderId, time'
+          [StorageSchemata.OBJECT_STORE.ASSETS_KEYS]: 'assetId',
+          [StorageSchemata.OBJECT_STORE.EVENTS]: 'eventId, createdAt, sendingUser, type, message.topicId, [message.topicId+type]'
         },
         version: 0
       }

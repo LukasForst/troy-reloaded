@@ -1,7 +1,28 @@
-import { ClientId, ConversationId } from './index';
+import { ClientId, EventId, OtrTime, TopicId, UserId } from './index';
 import { Base64EncodedString, CipherTextBase64 } from '../cryptography/model';
 
-export interface OtrEnvelope {
+// this is constructed on backend
+export interface OtrEncryptedEvent {
+  /**
+   * ID of the event. IDs are created on the server.
+   */
+  eventId: EventId;
+  /**
+   * ID of the user who sent the message.
+   */
+  sendingUser: UserId;
+  /**
+   * Timestamp when was the event was created on the server.
+   */
+  createdAt: OtrTime;
+  /**
+   * Envelope OTR payload.
+   */
+  envelope: OtrEncryptedMessageEnvelope;
+}
+
+// this is constructed on client
+export interface OtrEncryptedMessageEnvelope {
   /**
    * Client that sent the message.
    */
@@ -12,20 +33,15 @@ export interface OtrEnvelope {
   recipientClientId: ClientId;
   /**
    * Base64 encoded encrypted payload, once decrypted
-   * one should get OtrMessage.
+   * one should get OtrMessageEnvelope.
    */
   cipherTextPayload: CipherTextBase64;
 }
-/**
- * List of possible OtrMessage that can go through system.
- */
-export type OtrMessageType = 'new-asset'
-  | 'updated-asset' // TODO fill out other types
 
 /**
  * Decrypted payload from envelope.
  */
-export interface OtrMessage {
+export interface OtrMessageEnvelope {
   /**
    * Type of the message. Depending on the type,
    * the message then the "data" is different.
@@ -35,32 +51,42 @@ export interface OtrMessage {
   /**
    * Payload, different depending on what is the type.
    */
-  data: OtrEvent;
+  data: OtrMessage;
+}
+
+/**
+ * List of possible OtrMessage that can go through system.
+ */
+export enum OtrMessageType {
+  NEW_ASSET = 'new-asset',
+  NEW_TEXT = 'new-text'
 }
 
 /**
  * Generic OTR event in OtrMessage.
  */
-export type OtrEvent = ConversationEvent
+export type OtrMessage = TopicMessage
   | NewAssetOtrMessage
+  | NewTextOtrMessage
 
 /**
- * Event that happened in conversation.
+ * Event that happened in given topic.
  */
-export interface ConversationEvent {
+export interface TopicMessage {
   /**
    * ID of the conversation.
    */
-  conversationId: ConversationId;
+  topicId: TopicId;
 }
 
-export interface AssetMetadata {
-  fileName: string;
-  length: number;
-  fileExtension: string; // TODO maybe content type would be better?
+export interface NewTextOtrMessage extends TopicMessage {
+  /**
+   * Represents something written by the user.
+   */
+  text: string;
 }
 
-export interface NewAssetOtrMessage extends ConversationEvent {
+export interface NewAssetOtrMessage extends TopicMessage {
   /**
    * ID of the asset.
    */
@@ -77,4 +103,19 @@ export interface NewAssetOtrMessage extends ConversationEvent {
    * Metadata.
    */
   metadata: AssetMetadata;
+}
+
+export interface AssetMetadata {
+  /**
+   * Name of the file.
+   */
+  fileName: string;
+  /**
+   * File size in bytes.
+   */
+  length: number;
+  /**
+   * File extension - such as .pdf.
+   */
+  fileExtension: string; // TODO maybe content type would be better?
 }

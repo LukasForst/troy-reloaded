@@ -9,10 +9,10 @@ export type UserId = string
 export type ClientId = string
 
 /**
- * ID of the conversation - depends on the context,
+ * ID of the topic - depends on the context,
  * assume no type.
  */
-export type ConversationId = string
+export type TopicId = string
 
 /**
  * ID of the asset, assume no type.
@@ -20,9 +20,9 @@ export type ConversationId = string
 export type AssetId = string
 
 /**
- * ID of the notification - UUID.
+ * ID of the event generated on the server - UUID.
  */
-export type NotificationId = string
+export type EventId = string
 
 /**
  * Type which stores time. // TODO specify the format
