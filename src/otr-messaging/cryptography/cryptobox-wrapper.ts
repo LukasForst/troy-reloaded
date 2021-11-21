@@ -10,8 +10,12 @@ import {
   PlainText,
   SerializedPrekey,
   SessionId
-} from './types';
+} from './model';
 import { ClientId } from '../model';
+
+declare enum TOPIC {
+  NEW_PREKEYS = 'new-prekeys',
+}
 
 /**
  * Service that provides methods for encryption and decryption.
@@ -45,6 +49,16 @@ export class CryptoboxWrapper {
    * Returns public key fingerprint.
    */
   getIdentity = (): string => this.cryptobox.getIdentity().public_key.fingerprint();
+
+  /**
+   * Register dispatcher that will be triggered when the cryptobox generates new prekeys.
+   */
+  registerPrekeysDispatch = (dispatch: (prekeys: SerializedPrekey[]) => any) => {
+    this.cryptobox.on(TOPIC.NEW_PREKEYS, (prekeys: ProteusKeys.PreKey[]) => {
+      const serializedPrekeys = prekeys.map(prekey => this.cryptobox.serialize_prekey(prekey));
+      dispatch(serializedPrekeys);
+    });
+  };
 
   /**
    * Initializes cryptobox, tries to load it from the storage, if it fails,

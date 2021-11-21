@@ -1,15 +1,15 @@
 import Api from '../api';
-import Cryptography from '../cryptography';
-import { AssetUploadResult, NotificationsFilter, OtrNotification, OtrNotificationsBundle, OtrPostResult } from '../api/types';
-import { DecryptedNotification } from './types';
+import { AssetUploadResult, NotificationsFilter, OtrNotification, OtrNotificationsBundle, OtrPostResult } from '../api/model';
+import { DecryptedNotification } from './model';
 import { AssetId, ClientId, ConversationId } from '../model';
 import { AssetMetadata, OtrMessage } from '../model/messages';
-import { Base64EncodedString } from '../cryptography/types';
+import { Base64EncodedString } from '../cryptography/model';
+import CryptographyService from '../cryptography';
 
 export default class CommunicationService {
   constructor(
     private readonly api: Api,
-    private readonly cryptography: Cryptography,
+    private readonly cryptography: CryptographyService,
     private readonly thisClientId: ClientId
   ) {
   }

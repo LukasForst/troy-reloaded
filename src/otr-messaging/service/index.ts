@@ -1,8 +1,7 @@
 import Api, { ApiOptions } from '../api';
-import { prepareStorage } from '../storage';
-import Cryptography from '../cryptography';
+import { AssetCacheStorage, prepareStorage } from '../storage';
+import { createCryptographyService } from '../cryptography';
 import CommunicationService from './communication-service';
-import { CachingService } from '../storage/caching-service';
 import { OtrApp } from './otr-app';
 
 /**
@@ -10,7 +9,7 @@ import { OtrApp } from './otr-app';
  *
  * Note: throws exception if the user is not logged in.
  */
-export const createOtrApp = async (apiOptions?: ApiOptions) => {
+const createOtrApp = async (apiOptions?: ApiOptions) => {
   const api = new Api(undefined, apiOptions);
   // obtain access token and test if the user is logged in, this throws exception if not
   const accessToken = await api.getAccessToken();
@@ -19,7 +18,7 @@ export const createOtrApp = async (apiOptions?: ApiOptions) => {
   // create storage with userId as a name
   const { engine, storage } = await prepareStorage(accessToken.userId);
   // now init crypto
-  const crypto = Cryptography.createWithEngine(engine);
+  const crypto = createCryptographyService(engine);
   const initResult = await crypto.initialize();
   // if the cryptobox was created register client on backend
   if (initResult.createdNew) {
@@ -37,8 +36,10 @@ export const createOtrApp = async (apiOptions?: ApiOptions) => {
     throw Error('It was not possible to obtain client ID!');
   }
   const communicationService = new CommunicationService(api, crypto, self.clientId);
-  const cachingService = new CachingService(storage);
+  const cachingService = new AssetCacheStorage(storage);
   return new OtrApp(self.clientId, storage, api, crypto, communicationService, cachingService);
 };
 
-export { OtrApp };
+export { createOtrApp, CommunicationService };
+
+export default OtrApp;

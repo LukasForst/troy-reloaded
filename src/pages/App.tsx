@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import { createOtrApp, OtrApp } from '../service';
+import OtrApp, { createOtrApp } from '../otr-messaging';
 
 export const App = () => {
   const [state, setState] = useState<'login-needed' | 'loading' | 'finished'>('loading');

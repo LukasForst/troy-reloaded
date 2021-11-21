@@ -1,3 +1,4 @@
+import { SerializedPrekey } from '../cryptography/model';
 import {
   AccessToken,
   AssetUploadResult,
@@ -8,13 +9,12 @@ import {
   OtrNotificationsBundle,
   OtrPostResult,
   Self
-} from './types';
+} from './model';
 import { AssetId, ClientId, ConversationId } from '../model';
 import { OtrEnvelope } from '../model/messages';
-import { SerializedPrekey } from '../cryptography/types';
 
 export interface ApiOptions {
-
+  backendUrl?: string;
 }
 
 export default class Api {

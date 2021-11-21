@@ -1,7 +1,7 @@
 import { AssetId } from '../model';
 import { TroyStorage } from './troy-storage';
 
-export class CachingService {
+export class AssetCacheStorage {
 
   constructor(private readonly storage: TroyStorage) {
   }

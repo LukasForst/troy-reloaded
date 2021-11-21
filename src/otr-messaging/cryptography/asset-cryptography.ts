@@ -1,4 +1,4 @@
-import { EncryptedAsset } from './types';
+import { EncryptedAsset } from './model';
 import { Decoder, Encoder } from 'bazinga64';
 
 

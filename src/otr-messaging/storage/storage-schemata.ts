@@ -1,6 +1,6 @@
 import type { Dexie, Transaction } from 'dexie';
 import { ClientId, ConversationId, OtrTime, UserId } from '../model';
-import { Base64EncodedString } from '../cryptography/types';
+import { Base64EncodedString } from '../cryptography/model';
 
 export interface SelfData {
   userId: UserId;

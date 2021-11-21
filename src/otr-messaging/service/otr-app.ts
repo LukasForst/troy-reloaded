@@ -1,13 +1,12 @@
 import Api from '../api';
-import Cryptography from '../cryptography';
-import { TroyStorage } from '../storage/troy-storage';
+import CryptographyService from '../cryptography';
+import TroyStorage, { AssetCacheStorage } from '../storage';
 import CommunicationService from './communication-service';
-import { DecryptedNotification } from './types';
+import { DecryptedNotification } from './model';
 import { AssetId, ClientId, ConversationId, UserId } from '../model';
 import { AssetMetadata } from '../model/messages';
-import { getFileExtension } from '../utils/fileUtils';
-import { CachingService } from '../storage/caching-service';
-import { OtrPostResult } from '../api/types';
+import { getFileExtension } from '../utils/file-utils';
+import { OtrPostResult } from '../api/model';
 import { ConversationAssets, SelfData, UsersData } from '../storage/storage-schemata';
 
 /**
@@ -21,9 +20,9 @@ export class OtrApp {
     private readonly clientId: ClientId,
     private readonly storage: TroyStorage,
     private readonly api: Api,
-    private readonly cryptography: Cryptography,
+    private readonly cryptography: CryptographyService,
     private readonly communicationService: CommunicationService,
-    private readonly cachingService: CachingService,
+    private readonly cachingService: AssetCacheStorage,
     private readonly options?: any
   ) {
     // when new prekeys are generated, send them to API

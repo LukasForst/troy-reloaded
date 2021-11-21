@@ -1,41 +1,22 @@
-import { Cryptobox } from '@wireapp/cryptobox';
 import { CryptoboxWrapper } from './cryptobox-wrapper';
-import { ClientsPrekeyBundle, SerializedPrekey } from './types';
+import { ClientsPrekeyBundle, SerializedPrekey } from './model';
 import { decryptAsset, encryptAsset } from './asset-cryptography';
 import { ClientId } from '../model';
 import { OtrEnvelope, OtrMessage } from '../model/messages';
-import { CRUDEngine } from '@wireapp/store-engine';
-import { keys as ProteusKeys } from '@wireapp/proteus';
 
-declare enum TOPIC {
-  NEW_PREKEYS = 'new-prekeys',
-}
 
-export default class Cryptography {
-
-  public readonly cryptobox: Cryptobox;
-  public readonly wrapper: CryptoboxWrapper;
+export default class CryptographyService {
 
   /**
    * See asset-cryptography.encryptAsset
    */
   encryptAsset = encryptAsset;
-
-  /**
-   * Create instance of this class with given engine.
-   */
-  static createWithEngine = (engine: CRUDEngine) => new Cryptography(engine);
-
   /**
    * See asset-cryptography.decryptAsset
    */
   decryptAsset = decryptAsset;
 
-  constructor(
-    private readonly engine: CRUDEngine,
-    options?: { cryptobox?: Cryptobox }) {
-    this.cryptobox = options?.cryptobox ?? new Cryptobox(this.engine);
-    this.wrapper = new CryptoboxWrapper(this.cryptobox);
+  constructor(private readonly wrapper: CryptoboxWrapper) {
   }
 
   /**
@@ -44,14 +25,9 @@ export default class Cryptography {
   getIdentity = (): string => this.wrapper.getIdentity();
 
   /**
-   * Register dispatcher that will be triggered when the cryptobox generates new prekeys.
+   * See CryptoboxWrapper.registerPrekeysDispatch.
    */
-  registerPrekeysDispatch = (dispatch: (prekeys: SerializedPrekey[]) => any) => {
-    this.cryptobox.on(TOPIC.NEW_PREKEYS, (prekeys: ProteusKeys.PreKey[]) => {
-      const serializedPrekeys = prekeys.map(prekey => this.cryptobox.serialize_prekey(prekey));
-      dispatch(serializedPrekeys);
-    });
-  };
+  registerPrekeysDispatch = (dispatch: (prekeys: SerializedPrekey[]) => any) => this.wrapper.registerPrekeysDispatch(dispatch);
 
   /**
    * Initializes cryptography services.

@@ -1,5 +1,5 @@
 import { AssetId, ClientId, NotificationId, OtrTime, UserId } from '../model';
-import { ClientsPrekeyBundle } from '../cryptography/types';
+import { ClientsPrekeyBundle } from '../cryptography/model';
 import { OtrEnvelope } from '../model/messages';
 
 export interface CreateClientResponse {

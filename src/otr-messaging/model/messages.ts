@@ -1,5 +1,5 @@
 import { ClientId, ConversationId } from './index';
-import { Base64EncodedString, CipherTextBase64 } from '../cryptography/types';
+import { Base64EncodedString, CipherTextBase64 } from '../cryptography/model';
 
 export interface OtrEnvelope {
   /**
