@@ -162,7 +162,7 @@ export default class Api {
     filter?: EventsFilter
   ): Promise<OtrEventsBundleResponse> => {
     // GET api/v1/events/{clientId}?filter=xxxx
-    const result = await this.a.get(`/events/${clientId}`, { params: filter });
+    const result = await this.a.get(`/events/${clientId}`, filter ? { params: filter } : {});
     return result.data as OtrEventsBundleResponse;
   };
 }

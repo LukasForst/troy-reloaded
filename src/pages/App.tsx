@@ -13,7 +13,7 @@ export const App = () => {
       return;
     }
     // initialise app
-    createOtrApp({ api: { baseUrl: 'http://localhost:8080/api/v1' } })
+    createOtrApp({ api: { baseUrl: 'http://localhost:8080/api' } })
     .then(app => {
       app.listen((events => {
         // TODO here bind it to redux dispatch
@@ -25,7 +25,8 @@ export const App = () => {
       setState('finished');
     })
     // when this fails, user is not logged in
-    .catch(() => {
+    .catch((e) => {
+      console.error('error during initialization', e);
       setState('login-needed');
     });
     // eslint-disable-next-line

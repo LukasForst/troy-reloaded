@@ -106,7 +106,7 @@ export class StorageSchemata {
           [StorageSchemata.OBJECT_STORE.ASSETS_KEYS]: 'assetId',
           [StorageSchemata.OBJECT_STORE.EVENTS]: 'eventId, createdAt, sendingUser, type, message.topicId, [message.topicId+type]'
         },
-        version: 0
+        version: 1
       }
     ];
   }

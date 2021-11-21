@@ -13,7 +13,7 @@ import {
 } from './model';
 import { ClientId } from '../model';
 
-declare enum TOPIC {
+enum TOPIC {
   NEW_PREKEYS = 'new-prekeys',
 }
 
