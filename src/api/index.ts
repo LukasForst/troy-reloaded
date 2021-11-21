@@ -1,15 +1,75 @@
 import {
+  AccessToken,
   AssetUploadResult,
   ConversationMessageVisibility,
   ConversationPrekeys,
+  CreateClientResponse,
   NotificationsFilter,
   OtrNotificationsBundle,
-  OtrPostResult
+  OtrPostResult,
+  Self
 } from './types';
 import { AssetId, ClientId, ConversationId } from '../model';
 import { OtrEnvelope } from '../model/messages';
+import { SerializedPrekey } from '../cryptography/types';
+
+export interface ApiOptions {
+
+}
 
 export default class Api {
+
+  constructor(
+    private accessToken?: string,
+    private readonly options?: ApiOptions
+  ) {
+  }
+
+  /**
+   * Registers new client in the backend.
+   * @param lastResortKey last key from the cryptobox that can be reused
+   * @param prekeys published prekeys
+   */
+  registerNewClient = async (lastResortKey: SerializedPrekey, prekeys: SerializedPrekey[]): Promise<CreateClientResponse> => {
+    // TODO implement this
+    return Promise.reject();
+  };
+
+  /**
+   * Stores prekeys in the backend
+   * @param clientId ID of the client who generated the prekeys
+   * @param prekeys prekeys from cryptobox to store
+   */
+  registerNewPrekeys = async (clientId: ClientId, prekeys: SerializedPrekey[]): Promise<void> => {
+    // TODO implement this
+    return Promise.reject();
+  };
+
+  /**
+   * Gets access token from the backend.
+   *
+   * Note: user should be already logged in with UserToken - that is stored in the cookie.
+   * Note: this operation also updates Api.accessToken in this Api instance.
+   */
+  getAccessToken = async (): Promise<AccessToken> => {
+    // TODO implement this
+    // obtain token
+    const token = await Promise.reject<AccessToken>();
+    // update token in this class so we will keep it for the next time
+    this.accessToken = `${token.type} ${token.token}`;
+    // and return the token instance
+    return token;
+  };
+
+  /**
+   * Gets information about current user.
+   * Will throw exception when non 200 is returned.
+   */
+  getSelf = async (): Promise<Self> => {
+    // TODO implement this
+    return Promise.reject();
+  };
+
   /**
    * Uploads encrypted asset to the storage and returns information about the upload.
    * @param cipherText encrypted asset.

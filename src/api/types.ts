@@ -1,6 +1,21 @@
-import { AssetId, NotificationId, OtrTime, UserId } from '../model';
+import { AssetId, ClientId, NotificationId, OtrTime, UserId } from '../model';
 import { ClientsPrekeyBundle } from '../cryptography/types';
 import { OtrEnvelope } from '../model/messages';
+
+export interface CreateClientResponse {
+  clientId: ClientId;
+}
+
+export interface AccessToken {
+  userId: UserId;
+  expiresInMinutes: number;
+  type: string;
+  token: string;
+}
+
+export interface Self {
+  userId: UserId;
+}
 
 export interface NotificationsFilter {
   /**
@@ -45,6 +60,12 @@ export interface OtrNotificationsBundle {
    * Array of received notifications.
    */
   notifications: OtrNotification[];
+}
+
+
+export interface ShareAssetResult {
+  otrPostResult: OtrPostResult;
+
 }
 
 export interface OtrPostResult {

@@ -42,6 +42,11 @@ export class CryptoboxWrapper {
   }
 
   /**
+   * Returns public key fingerprint.
+   */
+  getIdentity = (): string => this.cryptobox.getIdentity().public_key.fingerprint();
+
+  /**
    * Initializes cryptobox, tries to load it from the storage, if it fails,
    * initializes new one. Returns createdNew: true if it was created from scratch.
    *

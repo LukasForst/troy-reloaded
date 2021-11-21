@@ -1,6 +1,6 @@
 import Api from '../api';
 import Cryptography from '../cryptography';
-import { NotificationsFilter, OtrNotification, OtrNotificationsBundle, OtrPostResult } from '../api/types';
+import { AssetUploadResult, NotificationsFilter, OtrNotification, OtrNotificationsBundle, OtrPostResult } from '../api/types';
 import { DecryptedNotification } from './types';
 import { AssetId, ClientId, ConversationId } from '../model';
 import { AssetMetadata, OtrMessage } from '../model/messages';
@@ -17,27 +17,26 @@ export default class CommunicationService {
   /**
    * Shares given file to the given conversation.
    * @param conversationId ID of the conversation where should be asset posted.
-   * @param asset asset - in form of file from browser.
+   * @param asset asset - in form of buffer.
    * @param metadata metadata about the asset.
    */
-  shareAsset = async (conversationId: ConversationId, asset: File, metadata: AssetMetadata): Promise<OtrPostResult> => {
+  shareAsset = async (conversationId: ConversationId, asset: BufferSource, metadata: AssetMetadata): Promise<{ asset: AssetUploadResult, otr: OtrPostResult }> => {
     // obtain information about the conversation, prefetch data without blocking
     const preKeyBundlePromise = this.api.getPrekeysForConversation(conversationId).then(
       preKeysBundles => ({ ...preKeysBundles.me, ...preKeysBundles.recipients }) // TODO maybe filter this client?
     );
-    // read file to buffer
-    const buffer = Buffer.from(await asset.arrayBuffer());
     // encrypt asset
-    const { cipherText, key, sha256 } = await this.cryptography.encryptAsset(buffer);
+    const { cipherText, key, sha256 } = await this.cryptography.encryptAsset(asset);
     // upload it to the servers
-    const { assetId } = await this.api.uploadAsset(cipherText);
+    const assetUploadResult = await this.api.uploadAsset(cipherText);
     // build otr message
-    const assetMessage = { conversationId, assetId, key, sha256, metadata };
+    const assetMessage = { conversationId, assetId: assetUploadResult.assetId, key, sha256, metadata };
     const otrMessage: OtrMessage = { type: 'new-asset', data: assetMessage };
     // encrypt envelopes
     const envelopes = await this.cryptography.encryptToEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
     // and ship them!
-    return this.api.postOtrEnvelope(envelopes);
+    const otrResult = await this.api.postOtrEnvelope(envelopes);
+    return { asset: assetUploadResult, otr: otrResult };
   };
 
   /**

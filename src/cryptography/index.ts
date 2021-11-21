@@ -1,10 +1,15 @@
 import { Cryptobox } from '@wireapp/cryptobox';
 import { CryptoboxWrapper } from './cryptobox-wrapper';
-import { ClientsPrekeyBundle } from './types';
+import { ClientsPrekeyBundle, SerializedPrekey } from './types';
 import { decryptAsset, encryptAsset } from './asset-cryptography';
 import { ClientId } from '../model';
 import { OtrEnvelope, OtrMessage } from '../model/messages';
 import { CRUDEngine } from '@wireapp/store-engine';
+import { keys as ProteusKeys } from '@wireapp/proteus';
+
+declare enum TOPIC {
+  NEW_PREKEYS = 'new-prekeys',
+}
 
 export default class Cryptography {
 
@@ -32,6 +37,21 @@ export default class Cryptography {
     this.cryptobox = options?.cryptobox ?? new Cryptobox(this.engine);
     this.wrapper = new CryptoboxWrapper(this.cryptobox);
   }
+
+  /**
+   * See CryptoboxWrapper.getIdentity.
+   */
+  getIdentity = (): string => this.wrapper.getIdentity();
+
+  /**
+   * Register dispatcher that will be triggered when the cryptobox generates new prekeys.
+   */
+  registerPrekeysDispatch = (dispatch: (prekeys: SerializedPrekey[]) => any) => {
+    this.cryptobox.on(TOPIC.NEW_PREKEYS, (prekeys: ProteusKeys.PreKey[]) => {
+      const serializedPrekeys = prekeys.map(prekey => this.cryptobox.serialize_prekey(prekey));
+      dispatch(serializedPrekeys);
+    });
+  };
 
   /**
    * Initializes cryptography services.

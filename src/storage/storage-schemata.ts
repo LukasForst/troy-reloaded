@@ -2,6 +2,12 @@ import type { Dexie, Transaction } from 'dexie';
 import { ClientId, ConversationId, OtrTime, UserId } from '../model';
 import { Base64EncodedString } from '../cryptography/types';
 
+export interface SelfData {
+  userId: UserId;
+  clientId: string;
+  cryptoboxIdentity: string;
+}
+
 export interface UsersData {
   userId: UserId;
   displayName: string;
@@ -9,7 +15,12 @@ export interface UsersData {
   clients: ClientId[];
 }
 
-export interface AssetData {
+export interface AssetCache {
+  assetId: string;
+  payload?: ArrayBuffer;
+}
+
+export interface AssetDecryptionKeys {
   assetId: string;
   key: Base64EncodedString;
   sha256: Base64EncodedString;
@@ -41,11 +52,11 @@ export class StorageSchemata {
       KEYS: 'keys',
       PRE_KEYS: 'prekeys',
       SESSIONS: 'sessions',
-      CLIENTS: 'clients',
-      USERS: 'users',
       // application data
+      SELF: 'selfData',
       USERS_DATA: 'usersData',
-      ASSETS_DATA: 'assetsData',
+      ASSETS_KEYS: 'assetsData',
+      ASSETS_CACHE: 'assetsCache',
       CONVERSATIONS_DATA: 'conversationsData'
     };
   }
@@ -57,11 +68,11 @@ export class StorageSchemata {
           [StorageSchemata.OBJECT_STORE.KEYS]: '',
           [StorageSchemata.OBJECT_STORE.PRE_KEYS]: '',
           [StorageSchemata.OBJECT_STORE.SESSIONS]: '',
-          [StorageSchemata.OBJECT_STORE.CLIENTS]: ', meta.primary_key',
-          [StorageSchemata.OBJECT_STORE.USERS]: ', id',
 
+          [StorageSchemata.OBJECT_STORE.SELF]: '',
           [StorageSchemata.OBJECT_STORE.USERS_DATA]: 'userId, *clients',
-          [StorageSchemata.OBJECT_STORE.ASSETS_DATA]: 'assetId',
+          [StorageSchemata.OBJECT_STORE.ASSETS_KEYS]: 'assetId',
+          [StorageSchemata.OBJECT_STORE.ASSETS_CACHE]: 'assetId',
           [StorageSchemata.OBJECT_STORE.CONVERSATIONS_DATA]: 'conversationId, fileName, senderId, time'
         },
         version: 0
