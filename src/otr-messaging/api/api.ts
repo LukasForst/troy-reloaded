@@ -106,10 +106,10 @@ export default class Api {
    * Downloads encrypted asset, returns buffer with cipher text.
    * @param assetId id of the asset to download
    */
-  downloadAsset = async (assetId: AssetId): Promise<ArrayBuffer> => {
+  downloadAsset = async (assetId: AssetId): Promise<Buffer> => {
     // GET api/v1/assets/{assetId}
     const result = await this.a.get(`/assets/${assetId}`, { responseType: 'arraybuffer' });
-    return result.data as ArrayBuffer;
+    return Buffer.from(result.data);
   };
 
   /**

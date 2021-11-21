@@ -13,7 +13,7 @@ export const App = () => {
       return;
     }
     // initialise app
-    createOtrApp()
+    createOtrApp({ api: { baseUrl: 'http://localhost:8080/api/v1' } })
     .then(app => {
       app.listen((events => {
         // TODO here bind it to redux dispatch

@@ -9,8 +9,8 @@ import { OtrApp, OtrAppOptions } from './otr-app';
  *
  * Note: throws exception if the user is not logged in.
  */
-const createOtrApp = async (options?: { api?: ApiOptions, otr?: OtrAppOptions }) => {
-  const api = new Api(undefined, options?.api);
+const createOtrApp = async (options: { api: ApiOptions, otr?: OtrAppOptions }) => {
+  const api = new Api(options.api);
   // obtain access token and test if the user is logged in, this throws exception if not
   const accessToken = await api.getAccessToken();
   // TODO perform sanity checks -> do we have all necessary permissions?
