@@ -5,6 +5,8 @@ import OtrApp, { createOtrApp } from '../otr-messaging';
 export const App = () => {
   const [state, setState] = useState<'login-needed' | 'loading' | 'finished'>('loading');
   const [otrApp, setOtrApp] = useState<OtrApp | undefined>(undefined);
+  const [message, setMessage] = useState('Hello world!');
+  const [topic, setTopic] = useState('19:cfa5b371-349e-434e-944f-17fa5653375d_f9445383-8e82-46d6-8e7e-f7bbf6c6b6dc@unq.gbl.spaces');
 
   // effect for creating all instance of the communication service
   useEffect(() => {
@@ -31,12 +33,36 @@ export const App = () => {
     });
     // eslint-disable-next-line
   }, []);
+
   // print self to console
   otrApp?.getSelf().then(self => console.log('self', self));
   return (
     <div className="App">
       <header className="App-header">
         <p>State? {state}</p>
+        <div>
+          <div>
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+          </div>
+          <div>
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+          </div>
+          <div>
+            <button onClick={() => {
+              otrApp!.sendText(topic, message).then(r => console.log(r));
+            }}>
+              Hit it!
+            </button>
+          </div>
+        </div>
       </header>
     </div>
   );

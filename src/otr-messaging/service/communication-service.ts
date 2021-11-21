@@ -1,10 +1,10 @@
 import Api from '../api';
 import { AssetSharedResponse } from './model';
 import { AssetId, ClientId, TopicId } from '../model';
-import { AssetMetadata, OtrEncryptedEvent, OtrMessage, OtrMessageEnvelope, OtrMessageType } from '../model/messages';
+import { AssetMetadata, NewTextOtrMessage, OtrEncryptedEvent, OtrMessage, OtrMessageEnvelope, OtrMessageType } from '../model/messages';
 import { Base64EncodedString } from '../cryptography/model';
 import CryptographyService from '../cryptography';
-import { EventsFilter } from '../api/model/otr';
+import { EventsFilter, OtrPostResponse } from '../api/model/otr';
 import { DecryptedOtrEvent } from '../model/events';
 
 export default class CommunicationService {
@@ -38,6 +38,21 @@ export default class CommunicationService {
     // and ship them!
     const otrResult = await this.api.postOtrEnvelopes(topicId, envelopes);
     return { ...assetUploadResult, ...otrResult };
+  };
+
+  /**
+   * Send and text message.
+   * @param topicId topic where to send the message
+   * @param text text message
+   */
+  sendText = async (topicId: TopicId, text: string): Promise<OtrPostResponse> => {
+    const preKeyBundlePromise = this.api.getPrekeysForTopic(topicId).then(
+      preKeysBundles => ({ ...preKeysBundles.me, ...preKeysBundles.recipients }) // TODO maybe filter this client?
+    );
+    const assetMessage: NewTextOtrMessage = { topicId, text };
+    const otrMessage: OtrMessageEnvelope = { type: OtrMessageType.NEW_TEXT, data: assetMessage };
+    const envelopes = await this.cryptography.encryptEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
+    return this.api.postOtrEnvelopes(topicId, envelopes);
   };
 
   /**

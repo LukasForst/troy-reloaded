@@ -120,6 +120,14 @@ export class OtrApp {
     return sharedResponse;
   };
 
+
+  /**
+   * * Send and text message.
+   *
+   * See CommunicationService.sendText;
+   */
+  sendText = this.communicationService.sendText;
+
   /**
    * Fetches and decrypts asset - uses caching.
    * @param assetId assetId to fetch

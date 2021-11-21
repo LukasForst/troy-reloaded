@@ -96,11 +96,12 @@ export class TroyStorage extends Dexie {
    */
   storeAssetDecryptionKeys = async (assetKey: AssetDecryptionKey | AssetDecryptionKey[]) => this.transaction(
     'readwrite', this.assetsKeys, async () => {
-      if (Array.isArray(assetKey)) {
-        this.assetsKeys.bulkPut(assetKey, assetKey.map(k => k.assetId));
-      } else {
-        this.assetsKeys.put(assetKey, assetKey.assetId);
+      if (!Array.isArray(assetKey)) {
+        assetKey = [assetKey];
       }
+      assetKey.forEach(k => {
+        this.assetsKeys.put(k, k.assetId);
+      });
     }
   );
 
@@ -125,11 +126,12 @@ export class TroyStorage extends Dexie {
    */
   storeEvent = async (events: StoredEvent | StoredEvent[]) => {
     this.transaction('readwrite', this.events, async () => {
-        if (Array.isArray(events)) {
-          this.events.bulkPut(events, events.map(e => e.eventId));
-        } else {
-          this.events.put(events, events.eventId);
+        if (!Array.isArray(events)) {
+          events = [events];
         }
+        events.forEach(e => {
+          this.events.put(e, e.eventId);
+        });
       }
     );
   };
