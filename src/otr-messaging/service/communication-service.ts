@@ -26,16 +26,21 @@ export default class CommunicationService {
     const preKeyBundlePromise = this.prekeyBundle(topicId);
     // encrypt asset
     const { cipherText, key, sha256 } = await this.cryptography.encryptAsset(asset);
-    // upload it to the servers
-    const assetUploadResult = await this.api.uploadAsset(cipherText);
+    // request signed form data
+    const uploadRequest = await this.api.getUploadFormData(cipherText.byteLength);
+    // and then upload asset, do not wait on finishing as we will encrypt for users
+    const assetUploadResultPromise = this.api.uploadAsset(uploadRequest, cipherText);
     // build otr message
-    const assetMessage: OtrMessage = { topicId, assetId: assetUploadResult.assetId, key, sha256, metadata };
+    const assetMessage: OtrMessage = { topicId, assetId: uploadRequest.assetId, key, sha256, metadata };
     const otrMessage: OtrMessageEnvelope = { type: OtrMessageType.NEW_ASSET, data: assetMessage };
     // encrypt envelopes
     const envelopes = await this.cryptography.encryptEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
+    // now wait for the upload to finish, so we won't send invalid messages if it was not possible to upload the asset
+    await assetUploadResultPromise;
     // and ship them!
     const otrResult = await this.api.postOtrEnvelopes(topicId, envelopes);
-    return { otrMessage, response: { ...assetUploadResult, ...otrResult } };
+    // and return data
+    return { otrMessage, response: { ...uploadRequest, ...otrResult } };
   };
 
   /**

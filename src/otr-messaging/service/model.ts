@@ -1,8 +1,8 @@
 import { OtrPostResponse } from '../api/model/otr';
-import { AssetUploadResponse } from '../api/model/asset';
 import { OtrMessageEnvelope } from '../model/messages';
+import { SignedAssetUpload } from '../api/model/asset';
 
-export interface AssetSharedResponse extends OtrPostResponse, AssetUploadResponse {
+export interface AssetSharedResponse extends OtrPostResponse, SignedAssetUpload {
 }
 
 export interface OtrResult<R extends OtrPostResponse> {

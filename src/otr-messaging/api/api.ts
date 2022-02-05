@@ -2,7 +2,7 @@ import { SerializedPrekey } from '../cryptography/model';
 import { AssetId, ClientId, TopicId, UserId } from '../model';
 import { OtrEncryptedMessageEnvelope } from '../model/messages';
 import { AccessToken } from './model/access';
-import { AssetUploadResponse } from './model/asset';
+import { SignedAssetUpload } from './model/asset';
 import { TopicPrekeysResponse } from './model/topic';
 import { EventsFilter, OtrEventsBundleResponse, OtrMessageVisibility, OtrPostResponse } from './model/otr';
 import { ClientDetail, UserDetail } from '../model/user';
@@ -91,15 +91,33 @@ export default class Api {
   };
 
   /**
+   *
+   * @param contentLength intended file upload size
+   */
+  getUploadFormData = async (contentLength: number): Promise<SignedAssetUpload> => {
+    // POST api/v1/assets
+    const result = await this.a.post('/assets', {
+      length: contentLength
+    });
+    return result.data as SignedAssetUpload;
+  };
+
+  /**
    * Uploads encrypted asset to the storage and returns information about the upload.
+   * @param upload parameters for the upload
    * @param cipherText encrypted asset.
    */
-  uploadAsset = async (cipherText: ArrayBuffer): Promise<AssetUploadResponse> => {
-    // POST api/v1/assets
-    const result = await this.a.post('/assets', cipherText, {
-      headers: { 'Content-Type': 'application/octet-stream' }
+  uploadAsset = async (upload: SignedAssetUpload, cipherText: Buffer): Promise<any> => {
+    const bodyFormData = new FormData();
+    upload.formData.forEach((value, key) => {
+      bodyFormData.append(key, value);
     });
-    return result.data as AssetUploadResponse;
+    bodyFormData.append('file', new Blob([cipherText]), upload.assetId);
+
+    // TODO check if it is necessary to add token/cookie or not
+    const result = await axios.post(upload.url, bodyFormData);
+    // TODO check what it actually contains
+    return result.data;
   };
 
   /**
