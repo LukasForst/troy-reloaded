@@ -82,7 +82,6 @@ export class TroyStorage extends Dexie {
       this.assetsCache.put(asset, asset.assetId)
   );
 
-
   /**
    * Returns decryption keys for given asset ID.
    */
@@ -108,17 +107,36 @@ export class TroyStorage extends Dexie {
   /**
    * Returns list of events for given topic.
    */
-  listEventsInTopic = async (topic: TopicId) => this.transaction(
-    'readonly', this.events, async () =>
-      this.events.where('message.topicId').equals(topic).sortBy('createdAt')
+  listEventsInTopic = async (
+    topic: TopicId,
+    limit?: number,
+    offset: number = 0
+  ) => this.transaction(
+    'readonly', this.events, async () => {
+      let query = this.events.where('message.topicId').equals(topic).offset(offset);
+      if (limit !== undefined) {
+        query = query.limit(limit);
+      }
+      return query.sortBy('createdAt');
+    }
   );
 
   /**
    * Returns list of events for given topic and type.
    */
-  listEventsInTopicAndType = async (topic: TopicId, type: OtrMessageType) => this.transaction(
-    'readonly', this.events, async () =>
-      this.events.where('[type+message.topicId]').equals([topic, type]).sortBy('createdAt')
+  listEventsInTopicAndType = async (
+    topic: TopicId,
+    type: OtrMessageType,
+    limit?: number,
+    offset: number = 0
+  ) => this.transaction(
+    'readonly', this.events, async () => {
+      let query = this.events.where('[type+message.topicId]').equals([type, topic]).offset(offset);
+      if (limit !== undefined) {
+        query = query.limit(limit);
+      }
+      return query.sortBy('createdAt');
+    }
   );
 
   /**

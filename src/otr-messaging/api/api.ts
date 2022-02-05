@@ -35,7 +35,7 @@ export default class Api {
    * @param prekeys published prekeys
    */
   registerNewClient = async (lastResortKey: SerializedPrekey, prekeys: SerializedPrekey[]): Promise<ClientDetail> => {
-    // POST api/v1/clients
+    // POST api/clients
     const result = await this.a.post('/clients', { lastResortKey, prekeys });
     return result.data as ClientDetail;
   };
@@ -46,7 +46,7 @@ export default class Api {
    * @param prekeys prekeys from cryptobox to store
    */
   registerNewPrekeys = async (clientId: ClientId, prekeys: SerializedPrekey[]): Promise<void> => {
-    // PUT api/v1/clients/{clientId}/prekeys
+    // PUT api/clients/{clientId}/prekeys
     await this.a.put(`/clients/${clientId}/prekeys`, { prekeys });
   };
 
@@ -57,10 +57,10 @@ export default class Api {
    * Note: this operation also updates Api.accessToken in this Api instance.
    */
   getAccessToken = async (): Promise<AccessToken> => {
-    // POST api/v1/access
+    // POST api/access
     const result = await this.a.post(`/access`, undefined, { withCredentials: true });
     const token = result.data as AccessToken;
-    // update token in this class so we will keep it for the next time
+    // update token in this class, so we will keep it for the next time
     this.accessToken = `${token.type} ${token.token}`;
     this.a.defaults.headers.common['Authorization'] = this.accessToken;
     // and return the token instance
@@ -72,7 +72,7 @@ export default class Api {
    * Will throw exception when non 200 is returned.
    */
   getSelf = async (): Promise<UserDetail> => {
-    // GET api/v1/self
+    // GET api/self
     const result = await this.a.get(`/self`);
     return result.data as UserDetail;
   };
@@ -81,7 +81,7 @@ export default class Api {
    * Get information about users.
    */
   getUserDetails = async (userIds: UserId | UserId[]): Promise<UserDetail[]> => {
-    // POST api/v1/users
+    // POST api/users
     if (!Array.isArray(userIds)) {
       userIds = [userIds];
     }
@@ -95,7 +95,7 @@ export default class Api {
    * @param contentLength intended file upload size
    */
   getUploadFormData = async (contentLength: number): Promise<SignedAssetUpload> => {
-    // POST api/v1/assets
+    // POST api/assets
     const result = await this.a.post('/assets', {
       length: contentLength
     });
@@ -125,8 +125,14 @@ export default class Api {
    * @param assetId id of the asset to download
    */
   downloadAsset = async (assetId: AssetId): Promise<Buffer> => {
-    // GET api/v1/assets/{assetId}
-    const result = await this.a.get(`/assets/${assetId}`, { responseType: 'arraybuffer' });
+    // GET api/assets/{assetId}
+    let result = await this.a.get(`/assets/${assetId}`, { responseType: 'arraybuffer', maxRedirects: 0 });
+    // if the response is redirect, redirect for download once without authorization header
+    if (result.status === 302) {
+      const location = result.headers['Location'];
+      result = await axios.get(location, { responseType: 'arraybuffer' });
+    }
+
     return Buffer.from(result.data);
   };
 
@@ -138,7 +144,7 @@ export default class Api {
    */
   getPrekeysForTopic = async (topicId: TopicId): Promise<TopicPrekeysResponse> => {
     // TODO check if get is in this context correct or not (in terms of caching)
-    // GET api/v1/topics/{topicId}/prekeys
+    // GET api/topics/{topicId}/prekeys
     const result = await this.a.get(`/topics/${topicId}/prekeys`);
     return result.data as TopicPrekeysResponse;
   };
@@ -149,7 +155,7 @@ export default class Api {
    * @param topicId id of the topic
    */
   getOtrMessageVisibilityForTopic = async (topicId: TopicId): Promise<OtrMessageVisibility> => {
-    // GET api/v1/topics/{topicId}/visibility
+    // GET api/topics/{topicId}/visibility
     const result = await this.a.get(`/topics/${topicId}/visibility`);
     return result.data as OtrMessageVisibility;
   };
@@ -162,7 +168,7 @@ export default class Api {
   postOtrEnvelopes = async (
     topicId: TopicId, envelopes: OtrEncryptedMessageEnvelope[] | OtrEncryptedMessageEnvelope
   ): Promise<OtrPostResponse> => {
-    // POST api/v1/topics/{topicId}/otr
+    // POST api/topics/{topicId}/otr
     if (!Array.isArray(envelopes)) {
       envelopes = [envelopes];
     }
@@ -179,7 +185,7 @@ export default class Api {
     clientId: ClientId,
     filter?: EventsFilter
   ): Promise<OtrEventsBundleResponse> => {
-    // GET api/v1/events/{clientId}?filter=xxxx
+    // GET api/events/{clientId}?filter=xxxx
     const result = await this.a.get(`/events/${clientId}`, filter ? { params: filter } : {});
     return result.data as OtrEventsBundleResponse;
   };

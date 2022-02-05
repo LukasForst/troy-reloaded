@@ -1,7 +1,7 @@
 import Api from '../api';
 import { AssetSharedResponse, OtrResult } from './model';
 import { AssetId, ClientId, TopicId } from '../model';
-import { AssetMetadata, NewTextOtrMessage, OtrEncryptedEvent, OtrMessage, OtrMessageEnvelope, OtrMessageType } from '../model/messages';
+import { AssetMetadata, OtrEncryptedEvent, OtrMessage, OtrMessageEnvelope, OtrMessageType } from '../model/messages';
 import { Base64EncodedString } from '../cryptography/model';
 import CryptographyService from '../cryptography';
 import { EventsFilter, OtrPostResponse } from '../api/model/otr';
@@ -49,10 +49,17 @@ export default class CommunicationService {
    * @param text text message
    */
   sendText = async (topicId: TopicId, text: string): Promise<OtrResult<OtrPostResponse>> => {
-    const preKeyBundlePromise = this.prekeyBundle(topicId);
-    const assetMessage: NewTextOtrMessage = { topicId, text };
-    const otrMessage: OtrMessageEnvelope = { type: OtrMessageType.NEW_TEXT, data: assetMessage };
-    const envelopes = await this.cryptography.encryptEnvelopes(this.thisClientId, otrMessage, await preKeyBundlePromise);
+    return this.sendEnvelope(topicId, { type: OtrMessageType.NEW_TEXT, data: { topicId, text } });
+  };
+
+  /**
+   * Sends given envelope to the topic.
+   * @param topicId topic where to send the message
+   * @param otrMessage message
+   */
+  sendEnvelope = async (topicId: TopicId, otrMessage: OtrMessageEnvelope): Promise<OtrResult<OtrPostResponse>> => {
+    const preKeyBundle = await this.prekeyBundle(topicId);
+    const envelopes = await this.cryptography.encryptEnvelopes(this.thisClientId, otrMessage, preKeyBundle);
     const response = await this.api.postOtrEnvelopes(topicId, envelopes);
     return { otrMessage, response };
   };

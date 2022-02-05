@@ -18,26 +18,8 @@ export interface OtrAppOptions {
  * Main class used for OTR Messaging.
  */
 export class OtrApp {
-  /**
-   * Returns list of events for given topic.
-   *
-   * See TroyStorage.listEventsInTopic.
-   */
-  listTopicEvents = this.storage.listEventsInTopic;
+
   private eventsFetchIntervalId?: number;
-  /**
-   * Returns list of events that happened in the topic and given type..
-   *
-   * See TroyStorage.listEventsInTopicAndType.
-   */
-  listEventsInTopicAndType = this.storage.listEventsInTopicAndType;
-  /**
-   * Returns list of users that will be able (and list of them who are unable as well)
-   * to see any message posted to this topic.
-   *
-   * See Api.getOtrMessageVisibilityForTopic.
-   */
-  getOtrMessageVisibilityForTopic = this.api.getOtrMessageVisibilityForTopic;
   private onNewEventListener?: (events: StoredEvent[]) => void;
   private readonly shouldUseCaching: boolean;
   private readonly eventsFetchIntervalSeconds: number;
@@ -57,6 +39,28 @@ export class OtrApp {
     // when new prekeys are generated, send them to API
     cryptography.registerPrekeysDispatch(keys => api.registerNewPrekeys(clientId, keys));
   }
+
+  /**
+   * Returns list of events for given topic.
+   *
+   * See TroyStorage.listEventsInTopic.
+   */
+  listTopicEvents = this.storage.listEventsInTopic;
+
+  /**
+   * Returns list of events that happened in the topic and given type..
+   *
+   * See TroyStorage.listEventsInTopicAndType.
+   */
+  listEventsInTopicAndType = this.storage.listEventsInTopicAndType;
+
+  /**
+   * Returns list of users that will be able (and list of them who are unable as well)
+   * to see any message posted to this topic.
+   *
+   * See Api.getOtrMessageVisibilityForTopic.
+   */
+  getOtrMessageVisibilityForTopic = this.api.getOtrMessageVisibilityForTopic;
 
   /**
    * Periodically executes fetch events and stores the result
@@ -121,6 +125,17 @@ export class OtrApp {
     return response;
   };
 
+  /**
+   * Sends given envelope.
+   *
+   * See CommunicationService.sendEnvelope;
+   */
+  sendEnvelope = async (topicId: TopicId, envelope: OtrMessageEnvelope): Promise<OtrPostResponse> => {
+    const { otrMessage, response } = await this.communicationService.sendEnvelope(topicId, envelope);
+    this.reconstructAndFireEvent(otrMessage, response);
+    return response;
+  };
+
   private processEventsToStore = async (eventsToStore: StoredEvent[]) => {
     // store events
     await this.storage.storeEvent(eventsToStore);
@@ -152,8 +167,7 @@ export class OtrApp {
       message: otrMessage.data
     };
     // fire and forget
-    // noinspection ES6MissingAwait,JSIgnoredPromiseFromCall
-    this.processEventsToStore([event]);
+    this.processEventsToStore([event]).then();
   };
 
   /**
