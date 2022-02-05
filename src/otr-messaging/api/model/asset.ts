@@ -15,5 +15,5 @@ export interface SignedAssetUpload {
   /**
    * Map of the key/values for form data request.
    */
-  formData: Map<string, string>;
+  formData: { [key: string]: string };
 }

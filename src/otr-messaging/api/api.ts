@@ -109,15 +109,10 @@ export default class Api {
    */
   uploadAsset = async (upload: SignedAssetUpload, cipherText: Buffer): Promise<any> => {
     const bodyFormData = new FormData();
-    upload.formData.forEach((value, key) => {
-      bodyFormData.append(key, value);
-    });
+    Object.keys(upload.formData).map(key => bodyFormData.append(key, upload.formData[key]));
     bodyFormData.append('file', new Blob([cipherText]), upload.assetId);
-
     // TODO check if it is necessary to add token/cookie or not
-    const result = await axios.post(upload.url, bodyFormData);
-    // TODO check what it actually contains
-    return result.data;
+    return await axios.post(upload.url, bodyFormData);
   };
 
   /**
@@ -126,14 +121,11 @@ export default class Api {
    */
   downloadAsset = async (assetId: AssetId): Promise<Buffer> => {
     // GET api/assets/{assetId}
-    let result = await this.a.get(`/assets/${assetId}`, { responseType: 'arraybuffer', maxRedirects: 0 });
-    // if the response is redirect, redirect for download once without authorization header
-    if (result.status === 302) {
-      const location = result.headers['Location'];
-      result = await axios.get(location, { responseType: 'arraybuffer' });
-    }
-
-    return Buffer.from(result.data);
+    // TODO this should be optimised, but problem is that application redirects automatically and then sends bearer token
+    const result = await this.a.get(`/assets/${assetId}`);
+    const assetUrl = result.data['assetDownloadUrl'];
+    const assetResult = await axios.get(assetUrl, { responseType: 'arraybuffer' });
+    return Buffer.from(assetResult.data);
   };
 
   /**

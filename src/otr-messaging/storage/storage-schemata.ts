@@ -100,9 +100,9 @@ export class StorageSchemata {
           [StorageSchemata.OBJECT_STORE.PRE_KEYS]: '',
           [StorageSchemata.OBJECT_STORE.SESSIONS]: '',
           // application data
-          [StorageSchemata.OBJECT_STORE.USERS_DATA]: ',userId, *clients',
-          [StorageSchemata.OBJECT_STORE.CURRENT_USER_DATA]: ',userId',
-          [StorageSchemata.OBJECT_STORE.ASSETS_CACHE]: ',assetId',
+          [StorageSchemata.OBJECT_STORE.USERS_DATA]: 'userId, *clients',
+          [StorageSchemata.OBJECT_STORE.CURRENT_USER_DATA]: 'userId',
+          [StorageSchemata.OBJECT_STORE.ASSETS_CACHE]: 'assetId',
           [StorageSchemata.OBJECT_STORE.ASSETS_KEYS]: 'assetId',
           [StorageSchemata.OBJECT_STORE.EVENTS]: 'eventId, createdAt, sendingUser, type, message.topicId, [message.topicId+type]'
         },

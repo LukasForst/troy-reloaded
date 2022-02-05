@@ -40,7 +40,7 @@ export class TroyStorage extends Dexie {
    */
   storeUser = async (user: UsersData) => this.transaction(
     'readwrite', this.usersData, async () =>
-      this.usersData.put(user, user.userId)
+      this.usersData.put(user)
   );
 
   /**
@@ -62,9 +62,8 @@ export class TroyStorage extends Dexie {
    */
   storeCurrentUser = async (user: CurrentUserData) => this.transaction(
     'readwrite', this.currentUserData, async () =>
-      this.currentUserData.put(user, user.userId)
+      this.currentUserData.put(user)
   );
-
 
   /**
    * Returns asset cache for given assetId.
@@ -78,8 +77,7 @@ export class TroyStorage extends Dexie {
    * Stores asset cache in database.
    */
   storeAssetCache = async (asset: AssetCache) => this.transaction(
-    'readwrite', this.assetsCache, async () =>
-      this.assetsCache.put(asset, asset.assetId)
+    'readwrite', this.assetsCache, async () => this.assetsCache.put(asset)
   );
 
   /**
@@ -99,7 +97,7 @@ export class TroyStorage extends Dexie {
         assetKey = [assetKey];
       }
       assetKey.forEach(k => {
-        this.assetsKeys.put(k, k.assetId);
+        this.assetsKeys.put(k);
       });
     }
   );
@@ -148,7 +146,7 @@ export class TroyStorage extends Dexie {
           events = [events];
         }
         events.forEach(e => {
-          this.events.put(e, e.eventId);
+          this.events.put(e);
         });
       }
     );
