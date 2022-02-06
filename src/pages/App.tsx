@@ -33,7 +33,7 @@ export const App = () => {
       return;
     }
     // initialise app
-    createOtrApp({ api: { baseUrl: 'http://localhost:8080/api' } })
+    createOtrApp({ api: { baseUrl: 'http://localhost:8080/api', websocketUrl: 'ws://localhost:8080/async' } })
     .then(app => {
       app.listen((events => {
         // TODO here bind it to redux dispatch
@@ -87,6 +87,16 @@ export const App = () => {
             />
           </div>
           <div>
+            <button disabled={state !== 'finished'} onClick={() => {
+              setState('loading');
+              otrApp!.sendText(topic, message)
+              .then(r => console.log(r))
+              .then(() => setState('finished'));
+            }}>
+              Send Message!
+            </button>
+          </div>
+          <div>
             Messages
             <ul>
               {messagesList.map((m, idx) => <li key={idx}>Message #{idx}: {m}</li>)}
@@ -112,16 +122,6 @@ export const App = () => {
                 .catch((e) => console.log(e));
               }}>{asset.name}</button></li>)}
             </ul>
-          </div>
-          <div>
-            <button disabled={state !== 'finished'} onClick={() => {
-              setState('loading');
-              otrApp!.sendText(topic, message)
-              .then(r => console.log(r))
-              .then(() => setState('finished'));
-            }}>
-              Hit it!
-            </button>
           </div>
           <div>
             <form onSubmit={(e) => {

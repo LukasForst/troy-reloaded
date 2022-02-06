@@ -36,6 +36,7 @@ export default class Api {
    * @param onEvents listener executed when new events come
    */
   connectWebsocket = async (clientId: ClientId, onEvents: ((e: OtrEncryptedEvent[]) => void)): Promise<void> => {
+    // TODO: what if socket gets disconnected during the time when user is connected? no way to find out
     // if no websocket url is set, returns false
     if (!this.options.websocketUrl) {
       return Promise.reject('No websocket url.');
@@ -52,7 +53,8 @@ export default class Api {
     return new Promise(((resolve, reject) => {
       // if there's no websocket so far create one
       if (!this.s) {
-        this.s = new WebSocket(`${this.options.websocketUrl}/${clientId}/${this.accessToken}`);
+        const token = this.accessToken?.split(' ')[1];
+        this.s = new WebSocket(`${this.options.websocketUrl}?client=${clientId}&token=${token}`);
         this.s.onopen = () => resolve();
         this.s.onerror = (e) => reject(e);
       }
