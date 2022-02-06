@@ -21,7 +21,7 @@ export default class CommunicationService {
    * @param asset asset - in form of buffer.
    * @param metadata metadata about the asset.
    */
-  shareAsset = async (topicId: TopicId, asset: BufferSource, metadata: AssetMetadata): Promise<OtrResult<AssetSharedResponse>> => {
+  sendAsset = async (topicId: TopicId, asset: BufferSource, metadata: AssetMetadata): Promise<OtrResult<AssetSharedResponse>> => {
     // obtain information about the conversation, prefetch data without blocking
     const preKeyBundlePromise = this.prekeyBundle(topicId);
     // encrypt asset
@@ -101,6 +101,18 @@ export default class CommunicationService {
       hasMoreEvents = bundle.hasMore;
     } while (hasMoreEvents);
     // and now let's decrypt it and map it
+    return this.decryptAll(eventsToDecrypt);
+  };
+
+  /**
+   * Connects given event handler to websocket, rejects when there was an error during connecting to the websocket.
+   * @param onEvents handler when new events came
+   */
+  connectToWebSocket = async (onEvents: ((events: DecryptedOtrEvent[]) => void)) =>
+    this.api.connectWebsocket(this.thisClientId, async (e) => onEvents(await this.decryptAll(e)));
+
+  private decryptAll = async (eventsToDecrypt: OtrEncryptedEvent[]): Promise<DecryptedOtrEvent[]> => {
+    // and now let's decrypt it and map it
     const decryptionQueue = eventsToDecrypt.map(async (event) => {
       // TODO what if this fails?
       const otrMessageEnvelope = await this.cryptography.decryptEnvelope(event.envelope);
@@ -114,6 +126,6 @@ export default class CommunicationService {
       };
     });
     // let's wait until all of them are decrypted and respond with decrypted data
-    return await Promise.all(decryptionQueue);
+    return Promise.all(decryptionQueue);
   };
 };
