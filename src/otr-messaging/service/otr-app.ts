@@ -8,6 +8,7 @@ import { AssetMetadata, NewAssetOtrMessage, OtrMessageEnvelope, OtrMessageType }
 import { getFileExtension } from '../utils/file-utils';
 import { AssetDecryptionKey, CurrentUserData, StoredEvent, UsersData } from '../storage/storage-schemata';
 import { OtrPostResponse } from '../api/model/otr';
+import { DecryptedOtrEvent } from '../model/events';
 
 export interface OtrAppOptions {
   shouldUseCaching?: boolean;
@@ -31,10 +32,10 @@ export class OtrApp {
     private readonly api: Api,
     private readonly cryptography: CryptographyService,
     private readonly communicationService: CommunicationService,
-    private readonly cachingService: AssetCacheStorage,
+    private readonly cachingService?: AssetCacheStorage,
     options?: OtrAppOptions
   ) {
-    this.shouldUseCaching = options?.shouldUseCaching ?? true;
+    this.shouldUseCaching = (options?.shouldUseCaching ?? true) && (cachingService !== undefined);
     this.eventsFetchIntervalSeconds = options?.eventsFetchIntervalSeconds ?? 5; // every 5s
     // when new prekeys are generated, send them to API
     cryptography.registerPrekeysDispatch(keys => api.registerNewPrekeys(clientId, keys));
@@ -73,8 +74,9 @@ export class OtrApp {
     }
     // and start execution once again
     this.onNewEventListener = onNewEvent;
-    this.eventsFetchIntervalId = window.setInterval(async () => {
-      const events = await this.communicationService.fetchAllEvents(this.clientId, {});
+
+    // setup callback that stores new events
+    const eventsReceived = async (events: DecryptedOtrEvent[]) => {
       // nothing to fetch
       if (events.length === 0) {
         return;
@@ -88,7 +90,17 @@ export class OtrApp {
       } as StoredEvent));
       // wait until all data are stored
       await this.processEventsToStore(eventsToStore);
-    }, this.eventsFetchIntervalSeconds * 1000);
+    };
+
+    // first try to connect using websocket
+    this.communicationService.connectToWebSocket(eventsReceived)
+    // if that fails use interval fetching
+    .catch(() => {
+      this.eventsFetchIntervalId = window.setInterval(() => {
+        this.communicationService.fetchAllEvents(this.clientId, {})
+        .then(eventsReceived);
+      }, this.eventsFetchIntervalSeconds * 1000);
+    });
   };
 
   /**
@@ -96,7 +108,7 @@ export class OtrApp {
    * @param topic id of the topic where to share it.
    * @param file file from the browser
    */
-  shareAsset = async (topic: TopicId, file: File): Promise<AssetSharedResponse> => {
+  sendAsset = async (topic: TopicId, file: File): Promise<AssetSharedResponse> => {
     // read file to buffer and prepare metadata
     const arrayBuffer = await file.arrayBuffer();
     const metaData: AssetMetadata = {
@@ -105,9 +117,11 @@ export class OtrApp {
       fileExtension: getFileExtension(file.name)
     };
     // share the asset
-    const { otrMessage, response } = await this.communicationService.shareAsset(topic, arrayBuffer, metaData);
+    const { otrMessage, response } = await this.communicationService.sendAsset(topic, arrayBuffer, metaData);
     // store unencrypted asset in cache
-    await this.cachingService.cacheAsset(response.assetId, arrayBuffer);
+    if (this.cachingService && this.shouldUseCaching) {
+      await this.cachingService.cacheAsset(response.assetId, arrayBuffer);
+    }
     // fire event
     this.reconstructAndFireEvent(otrMessage, response);
     // and return result
@@ -175,17 +189,23 @@ export class OtrApp {
    * @param assetId assetId to fetch
    */
   getAsset = async (assetId: AssetId): Promise<Blob> => {
-    const cachedResponse = await this.cachingService.getCachedAsset(assetId);
-    if (cachedResponse) {
-      return new Blob([cachedResponse]);
+    // check if the file is in cache
+    if (this.cachingService && this.shouldUseCaching) {
+      const cachedResponse = await this.cachingService.getCachedAsset(assetId);
+      if (cachedResponse) {
+        return new Blob([cachedResponse]);
+      }
     }
+
     const assetKeys = await this.storage.getAssetDecryptionKeys(assetId);
     if (!assetKeys) {
       throw Error(`Asset ${assetId} was not found in the database!`);
     }
     const asset = await this.communicationService.downloadAsset(assetId, assetKeys.key, assetKeys.sha256);
     // cache asset
-    this.cachingService.cacheAsset(assetId, asset);
+    if (this.cachingService && this.shouldUseCaching) {
+      this.cachingService.cacheAsset(assetId, asset);
+    }
     // and return it back to client
     return new Blob([asset]);
   };

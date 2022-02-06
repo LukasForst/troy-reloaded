@@ -1,6 +1,6 @@
 import { SerializedPrekey } from '../cryptography/model';
 import { AssetId, ClientId, TopicId, UserId } from '../model';
-import { OtrEncryptedMessageEnvelope } from '../model/messages';
+import { OtrEncryptedEvent, OtrEncryptedMessageEnvelope } from '../model/messages';
 import { AccessToken } from './model/access';
 import { SignedAssetUpload } from './model/asset';
 import { TopicPrekeysResponse } from './model/topic';
@@ -10,12 +10,14 @@ import axios, { AxiosInstance } from 'axios';
 
 export interface ApiOptions {
   baseUrl: string;
+  websocketUrl?: string;
 }
 
 // TODO error handling
 export default class Api {
 
   private a: AxiosInstance;
+  private s?: WebSocket;
 
   constructor(
     private readonly options: ApiOptions,
@@ -28,6 +30,43 @@ export default class Api {
     });
   }
 
+  /**
+   * Connects given listener to websocket, rejects when it was not possible to connect to the websocket.
+   * @param clientId id of the current client
+   * @param onEvents listener executed when new events come
+   */
+  connectWebsocket = async (clientId: ClientId, onEvents: ((e: OtrEncryptedEvent[]) => void)): Promise<void> => {
+    // if no websocket url is set, returns false
+    if (!this.options.websocketUrl) {
+      return Promise.reject('No websocket url.');
+    }
+    // if there's no token, try to fetch it, if it fails return failure
+    if (!this.accessToken) {
+      await this.getAccessToken();
+    }
+    // previous step was not possible to finish,  we can not connect
+    if (!this.s && !this.accessToken) {
+      return Promise.reject('No live websocket connection or token present!');
+    }
+    // now create promise that resolves when the websocket connects
+    return new Promise(((resolve, reject) => {
+      // if there's no websocket so far create one
+      if (!this.s) {
+        this.s = new WebSocket(`${this.options.websocketUrl}/${clientId}/${this.accessToken}`);
+        this.s.onopen = () => resolve();
+        this.s.onerror = (e) => reject(e);
+      }
+      // finally, set onmessage event
+      this.s.onmessage = (e: MessageEvent) => {
+        if (e.data) {
+          const events = JSON.parse(e.data) as OtrEncryptedEvent[];
+          if (events) {
+            onEvents(events);
+          }
+        }
+      };
+    }));
+  };
 
   /**
    * Registers new client in the backend.

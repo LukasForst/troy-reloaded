@@ -127,7 +127,7 @@ export const App = () => {
             <form onSubmit={(e) => {
               if (selectedFile && otrApp) {
                 setState('loading');
-                otrApp.shareAsset(topic, selectedFile)
+                otrApp.sendAsset(topic, selectedFile)
                 .catch((e) => console.log(e))
                 .then(r => console.log(r))
                 .then(() => setState('finished'))
