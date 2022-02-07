@@ -33,6 +33,7 @@ export const App = () => {
       return;
     }
     // initialise app
+    // createOtrApp({ api: { baseUrl: 'https://troy.test.integrations.zinfra.io/api', websocketUrl: 'wss://troy.test.integrations.zinfra.io/async' } })
     createOtrApp({ api: { baseUrl: 'http://localhost:8080/api', websocketUrl: 'ws://localhost:8080/async' } })
     .then(app => {
       app.listen((events => {
