@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import OtrApp, { createOtrApp } from '../otr-messaging';
-import { StoredEvent } from '../otr-messaging/storage/storage-schemata';
-import { AssetId } from '../otr-messaging/model';
+import { AssetId } from '@wireapp/troy-core-client/dist/model';
+import { StoredEvent } from '@wireapp/troy-core-client/dist/storage';
+import OtrApp, { createOtrApp } from '@wireapp/troy-core-client';
 
 interface Asset {
   id: AssetId;
